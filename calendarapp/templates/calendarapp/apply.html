@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>휴가 신청</title>
+</head>
+<body>
+
+  <h2>
+  {% if is_edit %}
+    일정 수정
+  {% else %}
+    일정 신청
+  {% endif %}
+</h2>
+
+
+<form method="post">
+  {% csrf_token %}
+
+  <p>
+    {{ form.employee.label_tag }}
+    {{ form.employee }}
+  </p>
+
+  <p>
+    {{ form.leave_type.label_tag }}
+    {{ form.leave_type }}
+  </p>
+
+  <p>
+    {{ form.start.label_tag }}
+    {{ form.start }}
+  </p>
+
+  <p id="end-field">
+    {{ form.end.label_tag }}
+    {{ form.end }}
+  </p>
+
+  <button type="submit">저장</button>
+  
+   {% if is_edit %}
+    <button type="submit"
+            name="delete"
+            value="1"
+            onclick="return confirm('정말 이 일정을 삭제하시겠습니까?')"
+            style="margin-left:10px; color:red;">
+      삭제
+    </button>
+  {% endif %}
+</form>
+
+<script>
+  const leaveTypeField = document.getElementById("id_leave_type");
+  const endField = document.getElementById("end-field");
+
+  function toggleEndField() {
+    const value = leaveTypeField.value;
+
+    if (value === "연차" || value === "반차") {
+      endField.style.display = "none";
+    } else {
+      endField.style.display = "block";
+    }
+  }
+
+  leaveTypeField.addEventListener("change", toggleEndField);
+  toggleEndField();  // 페이지 로드 시 1회 실행
+</script>
+
+  <p><a href="/">← 캘린더로 돌아가기</a></p>
+
+</body>
+</html>

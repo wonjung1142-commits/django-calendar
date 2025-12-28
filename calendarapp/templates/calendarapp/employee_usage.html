@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ employee.name }} 사용현황</title>
+</head>
+<body>
+
+<h2>{{ employee.name }} 사용현황</h2>
+
+<h3>연차 / 반차</h3>
+<ul>
+  {% for e in annual_half %}
+    <li>
+      {{ e.start }} ({{ e.leave_type }})
+    </li>
+  {% empty %}
+    <li>사용 내역 없음</li>
+  {% endfor %}
+</ul>
+
+<h3>휴가</h3>
+<ul>
+  {% for e in leave %}
+    <li>
+      {{ e.start }} ~ {{ e.end }}
+    </li>
+  {% empty %}
+    <li>사용 내역 없음</li>
+  {% endfor %}
+</ul>
+
+</body>
+</html>

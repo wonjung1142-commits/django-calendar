@@ -9,19 +9,30 @@ from .forms import EventForm
 
 
 def event_list(request):
-    events = Event.objects.all()
+    events = Event.objects.select_related("employee")
 
     data = []
     for event in events:
+        color = LEAVE_COLORS.get(event.leave_type, "#9E9E9E")
+
         data.append({
             "id": event.id,
-            "title": event.leave_type,
+            "title": f"{event.employee.name} · {event.leave_type}",
             "start": event.start.isoformat(),
             "end": (event.end + timedelta(days=1)).isoformat(),
             "allDay": True,
+            "backgroundColor": color,
+            "borderColor": color,
         })
 
     return JsonResponse(data, safe=False)
+
+
+LEAVE_COLORS = {
+    "휴가": "#4CAF50",   # 초록
+    "연차": "#2196F3",   # 파랑
+    "반차": "#FF9800",   # 주황
+}
 
 
 def calendar_view(request):

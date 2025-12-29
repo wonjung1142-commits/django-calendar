@@ -1,14 +1,11 @@
-# trigger redeploy
-from .models import Employee
-from datetime import datetime
-from .forms import EventForm
+from datetime import datetime, timedelta
+
 from django.shortcuts import render, redirect, get_object_or_404
-from datetime import timedelta
-
-
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from .models import Event
+
+from .models import Employee, Event
+from .forms import EventForm
 
 
 def event_list(request):
@@ -32,58 +29,57 @@ def calendar_view(request):
 
 
 def apply_view(request):
-    date_str = request.GET.get('date')
-    edit_id = request.GET.get('edit')
+    date_str = request.GET.get("date")
+    edit_id = request.GET.get("edit")
 
     event = None
 
-    # ✅ 수정 모드일 때
+    # 수정 모드
     if edit_id:
         event = get_object_or_404(Event, id=edit_id)
 
-    if request.method == 'POST':
+    if request.method == "POST":
 
-        if event and 'delete' in request.POST:
+        # 삭제
+        if event and "delete" in request.POST:
             event.delete()
-            return redirect('/')
+            return redirect("/")
 
+        # 수정 / 신규
         if event:
-            # 기존 이벤트 수정
             form = EventForm(request.POST, instance=event)
         else:
-            # 새 이벤트 생성
             form = EventForm(request.POST)
 
         if form.is_valid():
             saved_event = form.save(commit=False)
 
-            # 연차/반차는 당일 처리
-            if saved_event.leave_type in ['연차', '반차']:
+            # 연차 / 반차는 당일 처리
+            if saved_event.leave_type in ["연차", "반차"]:
                 saved_event.end = saved_event.start
 
             saved_event.save()
-            return redirect('/')
+            return redirect("/")
 
     else:
+        # GET 요청
         if event:
-            # 수정 모드 → 기존 값 채우기
             form = EventForm(instance=event)
         else:
-            # 신규 모드
             initial_data = {}
             if date_str:
                 initial_data = {
-                    'start': date_str,
-                    'end': date_str,
+                    "start": date_str,
+                    "end": date_str,
                 }
             form = EventForm(initial=initial_data)
 
     return render(
         request,
-        'calendarapp/apply.html',
+        "calendarapp/apply.html",
         {
-            'form': form,
-            'is_edit': bool(event),
+            "form": form,
+            "is_edit": bool(event),
         }
     )
 

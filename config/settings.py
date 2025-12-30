@@ -4,10 +4,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# 보안 주의: 실제 배포 시에는 Cloudtype 환경변수에서 불러오도록 설정되어 있습니다.
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-key')
-
-# 배포 환경에서는 False가 안전합니다.
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = [
@@ -15,7 +12,6 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
 ]
-
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -29,6 +25,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # [추가됨] 디자인 파일을 서버에서 읽게 해줍니다.
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -56,7 +54,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# 핵심: Neon.tech 데이터베이스 연결 설정
 DATABASES = {
     'default': dj_database_url.config(
         default=os.environ.get('DATABASE_URL'),
@@ -72,7 +69,6 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# 한국 시간 및 언어 설정 (사업장 사용 시 편리합니다)
 LANGUAGE_CODE = 'ko-kr'
 TIME_ZONE = 'Asia/Seoul'
 USE_I18N = True
@@ -80,12 +76,14 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# [추가됨] Whitenoise가 디자인 파일을 압축해서 빠르게 보여주도록 설정합니다.
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# settings.py 맨 아래에 추가
 CSRF_TRUSTED_ORIGINS = [
     'https://port-0-django-calendar-mjs53602fbb241ed.sel3.cloudtype.app',
 ]
 
-# 아래 설정도 같이 추가되어 있는지 확인하세요 (보안 접속 허용)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

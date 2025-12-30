@@ -3,48 +3,36 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% if is_edit %}일정 수정{% else %}일정 신청{% endif context %}</title>
+  <title>일정 신청</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    /* 팝업(iframe) 내부에서 어색하지 않도록 배경을 투명하게 하고 여백을 조정합니다. */
     body { background-color: transparent; padding: 20px; font-family: 'Pretendard', sans-serif; }
     .card { border: none; box-shadow: none; background-color: transparent; }
     .form-label { font-weight: 600; color: #495057; }
     .btn-primary { border-radius: 8px; padding: 10px; font-weight: bold; }
-    .btn-danger { border-radius: 8px; padding: 10px; }
   </style>
 </head>
 <body>
-
 <div class="container-fluid">
   <div class="card">
-    <h2 class="text-center mb-4">
-      {% if is_edit %}✨ 일정 수정{% else %}📝 일정 신청{% endif %}
-    </h2>
-
     <form method="post" id="applyForm">
       {% csrf_token %}
-      
       <div class="mb-3">
         <label class="form-label">직원 선택</label>
         {{ form.employee }}
       </div>
-
       <div class="mb-3">
         <label class="form-label">휴가 종류</label>
         {{ form.leave_type }}
       </div>
-
       <div class="mb-3">
-        <label class="form-label">시작 날짜</label>
+        <label class="form-label">날짜 선택</label>
         {{ form.start }}
       </div>
-
       <div id="end-field-container" class="mb-4">
         <label class="form-label">종료 날짜</label>
         {{ form.end }}
       </div>
-
       <div class="d-grid gap-2 mb-3">
         <button type="submit" class="btn btn-primary">저장하기</button>
         {% if is_edit %}
@@ -54,34 +42,26 @@
     </form>
   </div>
 </div>
-
 <script>
-  // 1. 연차/반차 선택 시 종료일 칸 숨기기 로직
   const leaveTypeField = document.querySelector("#id_leave_type");
   const endFieldContainer = document.querySelector("#end-field-container");
-
   function toggleEndField() {
     if (!leaveTypeField) return;
     const value = leaveTypeField.value;
-    
-    // 모델(models.py)의 LEAVE_TYPE_CHOICES 값인 한글에 맞췄습니다
+    // 모델의 한글 선택지 값과 일치시켰습니다.
     if (value === '연차' || value === '반차') {
       endFieldContainer.style.display = 'none';
     } else {
       endFieldContainer.style.display = 'block';
     }
   }
-
   if (leaveTypeField) {
     leaveTypeField.addEventListener("change", toggleEndField);
-    toggleEndField(); // 초기 로드 시 실행
+    toggleEndField();
   }
-
-  // 2. 저장 완료 후 부모 창(calendar.html)에 새로고침 신호 전송
   {% if request.method == 'POST' and not form.errors %}
     window.parent.postMessage('reload', '*');
   {% endif %}
 </script>
-
 </body>
 </html>

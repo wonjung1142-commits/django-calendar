@@ -12,9 +12,6 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ["*"]
 
-CSRF_TRUSTED_ORIGINS = [
-    'https://*.cloudtype.app',  # 모든 클라우드타입 주소를 허용
-]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -80,3 +77,8 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# 알려주신 실제 서비스 주소를 등록합니다.
+CSRF_TRUSTED_ORIGINS = [
+    'https://port-0-django-calendar-mjs53602fbb241ed.sel3.cloudtype.app',
+]

@@ -9,7 +9,6 @@
     body { background-color: #f8f9fa; padding-top: 50px; }
     .card { border-radius: 15px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
     .btn-primary { background-color: #007bff; border: none; border-radius: 8px; padding: 10px 20px; }
-    .btn-secondary { border-radius: 8px; }
     .form-label { font-weight: 600; color: #495057; }
   </style>
 </head>
@@ -23,39 +22,34 @@
           {% if is_edit %}✨ 일정 수정{% else %}📝 일정 신청{% endif %}
         </h2>
 
-        <form method="post">
+        <form method="post" id="applyForm">
           {% csrf_token %}
 
           <div class="mb-3">
-            <label class="form-label">{{ form.employee.label }}</label>
+            <label class="form-label">직원 선택</label>
             {{ form.employee }}
           </div>
 
           <div class="mb-3">
-            <label class="form-label">{{ form.leave_type.label }}</label>
+            <label class="form-label">휴가 종류</label>
             {{ form.leave_type }}
           </div>
 
           <div class="mb-3">
-            <label class="form-label">{{ form.start.label }}</label>
+            <label class="form-label">시작 시간/날짜</label>
             {{ form.start }}
           </div>
 
-          <div id="end-field" class="mb-4">
-            <label class="form-label">{{ form.end.label }}</label>
+          <div id="end-field-container" class="mb-4">
+            <label class="form-label">종료 시간/날짜</label>
             {{ form.end }}
           </div>
 
           <div class="d-grid gap-2">
             <button type="submit" class="btn btn-primary">저장하기</button>
             <a href="/" class="btn btn-outline-secondary">취소</a>
-            
             {% if is_edit %}
-              <button type="submit" name="delete" value="1" 
-                      class="btn btn-danger mt-2" 
-                      onclick="return confirm('정말 이 일정을 삭제하시겠습니까?')">
-                삭제하기
-              </button>
+              <button type="submit" name="delete" value="1" class="btn btn-danger mt-2" onclick="return confirm('정말 삭제하시겠습니까?')">삭제하기</button>
             {% endif %}
           </div>
         </form>
@@ -65,23 +59,25 @@
 </div>
 
 <script>
-  // 기존에 있던 스크립트 로직 (leave_type에 따른 end 필드 숨김/보임)
-  const leaveTypeField = document.getElementById("id_leave_type");
-  const endField = document.getElementById("end-field");
+  // Django 폼 위젯이 생성하는 ID는 'id_필드명' 형식입니다.
+  const leaveTypeField = document.querySelector("#id_leave_type");
+  const endFieldContainer = document.querySelector("#end-field-container");
 
   function toggleEndField() {
-    // 연차(annual)나 반차(half)일 때 end 필드를 숨기는 로직이 있다면 여기에 추가
-    if (leaveTypeField.value === 'annual' || leaveTypeField.value === 'half') {
-      endField.style.display = 'none';
+    const value = leaveTypeField.value;
+    // 연차(annual), 반차(half)인 경우 종료일을 숨깁니다
+    if (value === 'annual' || value === 'half') {
+      endFieldContainer.style.display = 'none';
     } else {
-      endField.style.display = 'block';
+      endFieldContainer.style.display = 'block';
     }
   }
 
-  if (leaveTypeField) {
-    leaveTypeField.addEventListener("change", toggleEndField);
-    toggleEndField(); // 초기 실행
-  }
+  // 선택이 바뀔 때마다 실행
+  leaveTypeField.addEventListener("change", toggleEndField);
+  
+  // 페이지 로드 시 초기 상태 확인
+  window.addEventListener("DOMContentLoaded", toggleEndField);
 </script>
 
 </body>

@@ -6,38 +6,55 @@
   <title>일정 신청</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background-color: transparent; padding: 20px; }
-    .card { border: none; box-shadow: none; }
+    /* 팝업(iframe) 내부에서 어색하지 않도록 배경을 투명하게 하고 여백을 조정합니다. */
+    body { background-color: transparent; padding: 20px; font-family: 'Pretendard', sans-serif; }
+    .card { border: none; box-shadow: none; background-color: transparent; }
     .form-label { font-weight: 600; color: #495057; }
-    .btn-primary { border-radius: 8px; padding: 10px; }
+    .btn-primary { border-radius: 8px; padding: 10px; font-weight: bold; }
+    .btn-danger { border-radius: 8px; padding: 10px; }
+    /* 입력창 디자인 살짝 보정 */
+    .form-control:focus { border-color: #007bff; box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25); }
   </style>
 </head>
 <body>
 
 <div class="container-fluid">
   <div class="card">
+    {% if form.errors %}
+      <div class="alert alert-danger p-2" style="font-size: 0.85rem;">
+        입력 내용을 다시 확인해 주세요.
+      </div>
+    {% endif %}
+
     <form method="post" id="applyForm">
       {% csrf_token %}
+      
       <div class="mb-3">
         <label class="form-label">직원 선택</label>
         {{ form.employee }}
       </div>
+
       <div class="mb-3">
         <label class="form-label">휴가 종류</label>
         {{ form.leave_type }}
       </div>
+
       <div class="mb-3">
         <label class="form-label">시작 시간/날짜</label>
         {{ form.start }}
       </div>
+
       <div id="end-field-container" class="mb-4">
         <label class="form-label">종료 시간/날짜</label>
         {{ form.end }}
       </div>
+
       <div class="d-grid gap-2 mb-3">
         <button type="submit" class="btn btn-primary">저장하기</button>
+        
         {% if is_edit %}
-          <button type="submit" name="delete" value="1" class="btn btn-danger" onclick="return confirm('정말 삭제하시겠습니까?')">삭제하기</button>
+          <button type="submit" name="delete" value="1" class="btn btn-danger" 
+                  onclick="return confirm('정말 삭제하시겠습니까?')">삭제하기</button>
         {% endif %}
       </div>
     </form>
@@ -45,13 +62,15 @@
 </div>
 
 <script>
-  // 연차/반차 선택 시 종료일 숨기기 로직
+  // 1. 연차/반차 선택 시 종료일 칸 숨기기 로직
   const leaveTypeField = document.querySelector("#id_leave_type");
   const endFieldContainer = document.querySelector("#end-field-container");
 
   function toggleEndField() {
     if (!leaveTypeField) return;
     const value = leaveTypeField.value;
+    
+    // 모델의 선택 옵션값이 'annual' 또는 'half'인 경우
     if (value === 'annual' || value === 'half') {
       endFieldContainer.style.display = 'none';
     } else {
@@ -61,13 +80,15 @@
 
   if (leaveTypeField) {
     leaveTypeField.addEventListener("change", toggleEndField);
-    toggleEndField();
+    toggleEndField(); // 초기 로드 시 실행
   }
 
-  /* 중요: 저장이 완료되었을 때(POST 요청 후 에러가 없을 때) 부모 창에 새로고침 신호 보냄 */
+  // 2. 중요: 저장 완료 후 부모 창(calendar.html)에 새로고침 신호 전송
+  // POST 요청이 성공하고 폼 에러가 없을 때 작동합니다.
   {% if request.method == 'POST' and not form.errors %}
     window.parent.postMessage('reload', '*');
   {% endif %}
 </script>
+
 </body>
 </html>

@@ -5,7 +5,8 @@ from .models import Event
 class EventForm(forms.ModelForm):
     class Meta:
         model = Event
-        # apply.html 파일에 실제 존재하는 필드들로만 구성했습니다
+        # 모델에 실제 존재하는 필드명인지 다시 한번 확인해주세요!
+        # (만약 'employee'가 아니라 'user'라면 'user'로 바꿔야 합니다)
         fields = ['employee', 'leave_type', 'start', 'end']
 
         widgets = {
@@ -23,6 +24,5 @@ class EventForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(EventForm, self).__init__(*args, **kwargs)
-        # 모든 입력창에 부트스트랩 스타일을 입힙니다.
         for field in self.fields.values():
             field.widget.attrs.update({'class': 'form-control'})

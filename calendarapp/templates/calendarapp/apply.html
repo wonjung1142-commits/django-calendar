@@ -1,75 +1,88 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
   <meta charset="utf-8">
-  <title>휴가 신청</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if is_edit %}일정 수정{% else %}일정 신청{% endif %}</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #f8f9fa; padding-top: 50px; }
+    .card { border-radius: 15px; border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .btn-primary { background-color: #007bff; border: none; border-radius: 8px; padding: 10px 20px; }
+    .btn-secondary { border-radius: 8px; }
+    .form-label { font-weight: 600; color: #495057; }
+  </style>
 </head>
 <body>
 
-  <h2>
-  {% if is_edit %}
-    일정 수정
-  {% else %}
-    일정 신청
-  {% endif %}
-</h2>
+<div class="container">
+  <div class="row justify-content-center">
+    <div class="col-md-6">
+      <div class="card p-4">
+        <h2 class="text-center mb-4">
+          {% if is_edit %}✨ 일정 수정{% else %}📝 일정 신청{% endif %}
+        </h2>
 
+        <form method="post">
+          {% csrf_token %}
 
-<form method="post">
-  {% csrf_token %}
+          <div class="mb-3">
+            <label class="form-label">{{ form.employee.label }}</label>
+            {{ form.employee }}
+          </div>
 
-  <p>
-    {{ form.employee.label_tag }}
-    {{ form.employee }}
-  </p>
+          <div class="mb-3">
+            <label class="form-label">{{ form.leave_type.label }}</label>
+            {{ form.leave_type }}
+          </div>
 
-  <p>
-    {{ form.leave_type.label_tag }}
-    {{ form.leave_type }}
-  </p>
+          <div class="mb-3">
+            <label class="form-label">{{ form.start.label }}</label>
+            {{ form.start }}
+          </div>
 
-  <p>
-    {{ form.start.label_tag }}
-    {{ form.start }}
-  </p>
+          <div id="end-field" class="mb-4">
+            <label class="form-label">{{ form.end.label }}</label>
+            {{ form.end }}
+          </div>
 
-  <p id="end-field">
-    {{ form.end.label_tag }}
-    {{ form.end }}
-  </p>
-
-  <button type="submit">저장</button>
-  
-   {% if is_edit %}
-    <button type="submit"
-            name="delete"
-            value="1"
-            onclick="return confirm('정말 이 일정을 삭제하시겠습니까?')"
-            style="margin-left:10px; color:red;">
-      삭제
-    </button>
-  {% endif %}
-</form>
+          <div class="d-grid gap-2">
+            <button type="submit" class="btn btn-primary">저장하기</button>
+            <a href="/" class="btn btn-outline-secondary">취소</a>
+            
+            {% if is_edit %}
+              <button type="submit" name="delete" value="1" 
+                      class="btn btn-danger mt-2" 
+                      onclick="return confirm('정말 이 일정을 삭제하시겠습니까?')">
+                삭제하기
+              </button>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
+  // 기존에 있던 스크립트 로직 (leave_type에 따른 end 필드 숨김/보임)
   const leaveTypeField = document.getElementById("id_leave_type");
   const endField = document.getElementById("end-field");
 
   function toggleEndField() {
-    const value = leaveTypeField.value;
-
-    if (value === "연차" || value === "반차") {
-      endField.style.display = "none";
+    // 연차(annual)나 반차(half)일 때 end 필드를 숨기는 로직이 있다면 여기에 추가
+    if (leaveTypeField.value === 'annual' || leaveTypeField.value === 'half') {
+      endField.style.display = 'none';
     } else {
-      endField.style.display = "block";
+      endField.style.display = 'block';
     }
   }
 
-  leaveTypeField.addEventListener("change", toggleEndField);
-  toggleEndField();  // 페이지 로드 시 1회 실행
+  if (leaveTypeField) {
+    leaveTypeField.addEventListener("change", toggleEndField);
+    toggleEndField(); // 초기 실행
+  }
 </script>
-
-  <p><a href="/">← 캘린더로 돌아가기</a></p>
 
 </body>
 </html>

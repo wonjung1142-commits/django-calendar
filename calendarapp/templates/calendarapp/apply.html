@@ -48,7 +48,7 @@
   function toggleEndField() {
     if (!leaveTypeField) return;
     const value = leaveTypeField.value;
-    // 모델의 한글 선택지 값과 일치시켰습니다.
+    // models.py의 한글 값에 맞췄습니다.
     if (value === '연차' || value === '반차') {
       endFieldContainer.style.display = 'none';
     } else {
@@ -59,7 +59,8 @@
     leaveTypeField.addEventListener("change", toggleEndField);
     toggleEndField();
   }
-  {% if request.method == 'POST' and not form.errors %}
+  // views.py에서 보낸 성공 신호가 있으면 부모 창을 새로고침합니다.
+  {% if is_success %}
     window.parent.postMessage('reload', '*');
   {% endif %}
 </script>

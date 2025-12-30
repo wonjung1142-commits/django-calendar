@@ -10,7 +10,11 @@ SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-key')
 # 배포 환경에서는 False가 안전합니다.
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [
+    'port-0-django-calendar-mjs53602fbb241ed.sel3.cloudtype.app',
+    'localhost',
+    '127.0.0.1',
+]
 
 
 INSTALLED_APPS = [

@@ -78,7 +78,10 @@ STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# 알려주신 실제 서비스 주소를 등록합니다.
+# settings.py 맨 아래에 추가
 CSRF_TRUSTED_ORIGINS = [
     'https://port-0-django-calendar-mjs53602fbb241ed.sel3.cloudtype.app',
 ]
+
+# 아래 설정도 같이 추가되어 있는지 확인하세요 (보안 접속 허용)
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')

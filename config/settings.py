@@ -12,6 +12,10 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ["*"]
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.cloudtype.app',  # 모든 클라우드타입 주소를 허용
+]
+
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',

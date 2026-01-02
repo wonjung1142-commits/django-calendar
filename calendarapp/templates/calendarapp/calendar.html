@@ -3,56 +3,56 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>업무 캘린더</title>
+  <title>제일약국 캘린더</title>
   
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
   
   <style>
-    /* 배경 및 기본 폰트 */
-    body { background-color: #f0f2f5; font-family: 'Pretendard', -apple-system, sans-serif; }
-    
-    /* 캘린더 컨테이너: 모바일에서는 여백을 줄임 */
-    #calendar-container { 
-        background: white; 
-        padding: 15px; 
-        border-radius: 15px; 
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
-        margin: 10px; 
+    /* 1. 기본 스타일 및 폰트 */
+    body { background-color: #ffffff; font-family: 'Pretendard', -apple-system, sans-serif; }
+    #calendar-container { padding: 10px; margin: 0; }
+    #calendar { height: calc(100vh - 70px); }
+
+    /* 2. 링크 밑줄 제거 및 기본 글자색 (평일 검정) */
+    a { text-decoration: none !important; color: #202124 !important; }
+
+    /* 3. 요일별 색상 (삼성 캘린더 스타일) */
+    .fc-col-header-cell.fc-day-sun a, /* 헤더 일요일 */
+    .fc-daygrid-day.fc-day-sun .fc-daygrid-day-number { color: #d93025 !important; } /* 날짜 일요일 */
+
+    .fc-col-header-cell.fc-day-sat a, /* 헤더 토요일 */
+    .fc-daygrid-day.fc-day-sat .fc-daygrid-day-number { color: #1a73e8 !important; } /* 날짜 토요일 */
+
+    /* 4. 오늘 날짜 강조 (파란 원형) */
+    .fc-day-today { background: transparent !important; }
+    .fc-day-today .fc-daygrid-day-number { 
+        background-color: #1a73e8; 
+        color: white !important; 
+        border-radius: 50%; 
+        width: 28px; height: 28px; 
+        display: flex; align-items: center; justify-content: center;
+        margin: 4px auto !important;
     }
 
-    /* 캘린더 높이 자동 조절 */
-    #calendar { height: calc(100vh - 50px); }
-
-    /* 모바일에서 글자 크기 및 툴바 조정 */
-    @media (max-width: 768px) {
-      .fc-header-toolbar {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-      .fc-toolbar-title { font-size: 1.2rem !important; }
-      #calendar-container { margin: 5px; padding: 10px; }
-      #calendar { height: 75vh; }
-    }
-
-    /* 일정 바 디자인: 더 둥글고 깔끔하게 */
+    /* 5. 휴가/일정 블록(Bar) 디자인 */
     .fc-event { 
-        cursor: pointer; 
         border: none !important; 
-        padding: 3px 6px !important; 
-        border-radius: 6px !important;
-        font-size: 0.85rem;
-        font-weight: 500;
+        padding: 2px 6px !important; 
+        border-radius: 4px !important; 
+        font-size: 0.8rem !important;
+        font-weight: 500 !important;
+        margin-bottom: 1px !important;
     }
+    /* 여러 날을 잇는 블록의 양 끝을 깔끔하게 */
+    .fc-daygrid-event-h-dot { background: #3788d8; } 
 
-    /* 오늘 날짜 강조 */
-    .fc-day-today { background: rgba(0, 123, 255, 0.05) !important; }
+    /* 6. 공휴일 빨간색 표시 전용 클래스 */
+    .holiday-red .fc-daygrid-day-number { color: #d93025 !important; }
 
-    /* 모달(팝업) 모바일 최적화 */
-    .modal-dialog { margin: 10px; }
-    .modal-content { border-radius: 20px; border: none; }
-    #applyFrame { width: 100%; height: 500px; border: none; border-radius: 0 0 20px 20px; }
+    /* 기타 UI 미세 조정 */
+    .fc-toolbar-title { font-weight: bold !important; font-size: 1.25rem !important; }
+    .fc-theme-standard td, .fc-theme-standard th { border: 1px solid #f1f3f4 !important; }
   </style>
 </head>
 <body>
@@ -65,11 +65,11 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content shadow-lg">
       <div class="modal-header border-0">
-        <h5 class="modal-title fw-bold">📝 일정 등록/수정</h5>
+        <h5 class="modal-title fw-bold">📝 일정 관리</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body p-0">
-        <iframe id="applyFrame" src=""></iframe>
+        <iframe id="applyFrame" src="" style="width:100%; height:500px; border:none;"></iframe>
       </div>
     </div>
   </div>
@@ -82,21 +82,47 @@
   document.addEventListener('DOMContentLoaded', function () {
     const calendarEl = document.getElementById('calendar');
     const applyFrame = document.getElementById('applyFrame');
-    const modalElement = document.getElementById('applyModal');
-    const applyModal = new bootstrap.Modal(modalElement);
+    const applyModal = new bootstrap.Modal(document.getElementById('applyModal'));
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: window.innerWidth < 768 ? 'dayGridMonth' : 'dayGridMonth', // 모바일 기본 뷰 설정
+      initialView: 'dayGridMonth',
       locale: 'ko',
       headerToolbar: {
-        left: 'prev,next today',
+        left: 'today prev,next',
         center: 'title',
-        right: window.innerWidth < 768 ? '' : 'dayGridMonth,dayGridWeek' // 모바일에서는 우측 버튼 숨김
+        right: ''
       },
-      events: '/events/',
+      
+      // [핵심] 여러 날짜 블록을 위해 테스트 데이터를 넣어두었습니다.
+      // 나중에 Django의 '/events/' 경로에서 데이터를 받아오게 됩니다.
+      events: [
+        {
+          id: '1',
+          title: '김은주 휴가',
+          start: '2026-01-12',
+          end: '2026-01-15', // 14일까지 표시하려면 종료일 + 1일
+          color: '#28a745'   // 삼성 캘린더 스타일의 초록색 블록
+        },
+        {
+          id: '2',
+          title: '방현진 반차',
+          start: '2026-01-04',
+          color: '#007bff'
+        }
+      ],
+
       editable: false,
       selectable: true,
-      dayMaxEvents: true, // 이벤트가 많으면 '+ 더보기'로 표시
+      dayMaxEvents: true,
+
+      // 공휴일 빨간색 처리
+      dayCellDidMount: function(info) {
+        const holidays = ['2026-01-01', '2026-01-28', '2026-01-29', '2026-01-30'];
+        const dateStr = info.date.toLocaleDateString('sv-SE'); // YYYY-MM-DD 형식
+        if (holidays.includes(dateStr)) {
+          info.el.classList.add('holiday-red');
+        }
+      },
 
       dateClick: function (info) {
         applyFrame.src = `/apply/?date=${info.dateStr}`;
@@ -106,23 +132,6 @@
       eventClick: function (info) {
         applyFrame.src = `/apply/?edit=${info.event.id}`;
         applyModal.show();
-      },
-
-      // 화면 크기가 변할 때 달력 크기도 재조정
-      windowResize: function(view) {
-        if (window.innerWidth < 768) {
-            calendar.setOption('headerToolbar', {
-                left: 'prev,next today',
-                center: 'title',
-                right: ''
-            });
-        } else {
-            calendar.setOption('headerToolbar', {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,dayGridWeek'
-            });
-        }
       }
     });
 

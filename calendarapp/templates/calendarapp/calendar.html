@@ -10,19 +10,20 @@
   
   <style>
     /* 1. 삼성 캘린더 스타일 UI */
-    body { background-color: #ffffff; font-family: 'Pretendard', -apple-system, sans-serif; overflow: hidden; }
+    body { background-color: #ffffff; font-family: 'Pretendard', -apple-system, sans-serif; overflow: hidden; touch-action: none; }
     #calendar-container { padding: 10px; margin: 0; }
     #calendar { height: calc(100vh - 70px); }
 
     a { text-decoration: none !important; color: #202124 !important; }
 
-    /* 2. 주말 및 공휴일 색상 */
+    /* 2. 주말 및 공휴일 빨간색 표시 */
     .fc-col-header-cell.fc-day-sun a, 
     .fc-daygrid-day.fc-day-sun .fc-daygrid-day-number,
-    .holiday-red .fc-daygrid-day-number { color: #d93025 !important; } /* 일요일/공휴일 빨간색 */
+    .holiday-red .fc-daygrid-day-number { color: #d93025 !important; }
 
+    /* 토요일 파란색 */
     .fc-col-header-cell.fc-day-sat a, 
-    .fc-daygrid-day.fc-day-sat .fc-daygrid-day-number { color: #1a73e8 !important; } /* 토요일 파란색 */
+    .fc-daygrid-day.fc-day-sat .fc-daygrid-day-number { color: #1a73e8 !important; }
 
     /* 3. 오늘 날짜 원형 강조 */
     .fc-day-today { background: transparent !important; }
@@ -34,12 +35,9 @@
 
     .fc-event { border: none !important; padding: 2px 6px !important; border-radius: 4px !important; font-size: 0.8rem !important; font-weight: 500 !important; color: white !important; }
     .fc-theme-standard td, .fc-theme-standard th { border: 1px solid #f1f3f4 !important; }
-    
-    /* 모바일 툴바 최적화 */
-    @media (max-width: 768px) {
-      .fc-toolbar-title { font-size: 1.2rem !important; }
-      .fc-button { padding: 0.4em 0.6em !important; font-size: 0.9em !important; }
-    }
+
+    /* 모바일에서 스와이프가 잘 되도록 터치 영역 최적화 */
+    .fc-view-harness { touch-action: pan-y; }
   </style>
 </head>
 <body>
@@ -78,7 +76,6 @@
       headerToolbar: { left: 'today prev,next', center: 'title', right: '' },
       events: '/events/',
 
-      // 공휴일 처리 로직
       eventDidMount: function(info) {
         if (info.event.extendedProps.isHoliday) {
             const dateStr = info.event.startStr;
@@ -101,20 +98,24 @@
 
     calendar.render();
 
-    // --- [추가] 모바일 스와이프 기능 ---
-    const mc = new Hammer(calendarEl);
-    
-    // 오른쪽으로 밀면 이전 달로 이동
-    mc.on("swiperight", function() {
-      calendar.prev();
-    });
+    // --- [수정된 스와이프 로직] ---
+    // 캘린더 내부의 실제 날짜 판(harness)을 타겟으로 잡습니다.
+    const harness = document.querySelector('.fc-view-harness');
+    if (harness) {
+        const mc = new Hammer(harness);
+        
+        // 방향 설정 (가로 스와이프 허용)
+        mc.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
 
-    // 왼쪽으로 밀면 다음 달로 이동
-    mc.on("swipeleft", function() {
-      calendar.next();
-    });
+        mc.on("swiperight", function() {
+            calendar.prev(); // 오른쪽으로 밀면 이전달
+        });
 
-    // 팝업 성공 처리 메시지 리스너
+        mc.on("swipeleft", function() {
+            calendar.next(); // 왼쪽으로 밀면 다음달
+        });
+    }
+
     window.addEventListener('message', function(e) {
       if (e.data === 'reload') {
         applyModal.hide();

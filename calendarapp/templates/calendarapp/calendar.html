@@ -9,49 +9,31 @@
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
   
   <style>
-    /* 1. 기본 스타일 및 폰트 */
+    /* 1. 삼성 캘린더 스타일 UI */
     body { background-color: #ffffff; font-family: 'Pretendard', -apple-system, sans-serif; }
     #calendar-container { padding: 10px; margin: 0; }
     #calendar { height: calc(100vh - 70px); }
 
-    /* 2. 링크 밑줄 제거 및 기본 글자색 (평일 검정) */
     a { text-decoration: none !important; color: #202124 !important; }
 
-    /* 3. 요일별 색상 (삼성 캘린더 스타일) */
-    .fc-col-header-cell.fc-day-sun a, /* 헤더 일요일 */
-    .fc-daygrid-day.fc-day-sun .fc-daygrid-day-number { color: #d93025 !important; } /* 날짜 일요일 */
-
-    .fc-col-header-cell.fc-day-sat a, /* 헤더 토요일 */
-    .fc-daygrid-day.fc-day-sat .fc-daygrid-day-number { color: #1a73e8 !important; } /* 날짜 토요일 */
-
-    /* 4. 오늘 날짜 강조 (파란 원형) */
-    .fc-day-today { background: transparent !important; }
-    .fc-day-today .fc-daygrid-day-number { 
-        background-color: #1a73e8; 
-        color: white !important; 
-        border-radius: 50%; 
-        width: 28px; height: 28px; 
-        display: flex; align-items: center; justify-content: center;
-        margin: 4px auto !important;
-    }
-
-    /* 5. 휴가/일정 블록(Bar) 디자인 */
-    .fc-event { 
-        border: none !important; 
-        padding: 2px 6px !important; 
-        border-radius: 4px !important; 
-        font-size: 0.8rem !important;
-        font-weight: 500 !important;
-        margin-bottom: 1px !important;
-    }
-    /* 여러 날을 잇는 블록의 양 끝을 깔끔하게 */
-    .fc-daygrid-event-h-dot { background: #3788d8; } 
-
-    /* 6. 공휴일 빨간색 표시 전용 클래스 */
+    /* 2. 주말 및 공휴일 빨간색 표시 */
+    .fc-col-header-cell.fc-day-sun a, 
+    .fc-daygrid-day.fc-day-sun .fc-daygrid-day-number,
     .holiday-red .fc-daygrid-day-number { color: #d93025 !important; }
 
-    /* 기타 UI 미세 조정 */
-    .fc-toolbar-title { font-weight: bold !important; font-size: 1.25rem !important; }
+    /* 토요일 파란색 */
+    .fc-col-header-cell.fc-day-sat a, 
+    .fc-daygrid-day.fc-day-sat .fc-daygrid-day-number { color: #1a73e8 !important; }
+
+    /* 3. 오늘 날짜 원형 강조 */
+    .fc-day-today { background: transparent !important; }
+    .fc-day-today .fc-daygrid-day-number { 
+        background-color: #1a73e8; color: white !important; 
+        border-radius: 50%; width: 28px; height: 28px; 
+        display: flex; align-items: center; justify-content: center; margin: 4px auto !important;
+    }
+
+    .fc-event { border: none !important; padding: 2px 6px !important; border-radius: 4px !important; font-size: 0.8rem !important; font-weight: 500 !important; color: white !important; }
     .fc-theme-standard td, .fc-theme-standard th { border: 1px solid #f1f3f4 !important; }
   </style>
 </head>
@@ -87,40 +69,19 @@
     const calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: 'dayGridMonth',
       locale: 'ko',
-      headerToolbar: {
-        left: 'today prev,next',
-        center: 'title',
-        right: ''
-      },
-      
-      // [핵심] 여러 날짜 블록을 위해 테스트 데이터를 넣어두었습니다.
-      // 나중에 Django의 '/events/' 경로에서 데이터를 받아오게 됩니다.
-      events: [
-        {
-          id: '1',
-          title: '김은주 휴가',
-          start: '2026-01-12',
-          end: '2026-01-15', // 14일까지 표시하려면 종료일 + 1일
-          color: '#28a745'   // 삼성 캘린더 스타일의 초록색 블록
-        },
-        {
-          id: '2',
-          title: '방현진 반차',
-          start: '2026-01-04',
-          color: '#007bff'
-        }
-      ],
+      headerToolbar: { left: 'today prev,next', center: 'title', right: '' },
+      events: '/events/', // 서버 데이터 호출
 
-      editable: false,
-      selectable: true,
-      dayMaxEvents: true,
-
-      // 공휴일 빨간색 처리
-      dayCellDidMount: function(info) {
-        const holidays = ['2026-01-01', '2026-01-28', '2026-01-29', '2026-01-30'];
-        const dateStr = info.date.toLocaleDateString('sv-SE'); // YYYY-MM-DD 형식
-        if (holidays.includes(dateStr)) {
-          info.el.classList.add('holiday-red');
+      // [핵심] 서버에서 넘어온 공휴일 데이터를 감지하여 날짜 색상을 빨간색으로 변경
+      eventDidMount: function(info) {
+        if (info.event.extendedProps.isHoliday) {
+            const dateStr = info.event.startStr;
+            const dayEl = document.querySelector(`.fc-daygrid-day[data-date="${dateStr}"]`);
+            if (dayEl) {
+                dayEl.classList.add('holiday-red');
+            }
+            // 공휴일 정보가 일정 바(Bar)로 뜨지 않도록 숨김
+            info.el.style.display = 'none';
         }
       },
 

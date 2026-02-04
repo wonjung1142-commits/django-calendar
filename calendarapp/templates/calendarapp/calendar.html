@@ -9,11 +9,7 @@
   <style>
     body { background-color: #ffffff; font-family: 'Pretendard', -apple-system, sans-serif; overflow: hidden; touch-action: none; }
     .header-bar { background: white; border-bottom: 1px solid #f1f3f4; display: flex; align-items: center; padding: 10px 15px; height: 60px; }
-    .btn-home { 
-        background-color: #f1f3f4; color: #3c4043; border: none; border-radius: 30px; 
-        padding: 6px 14px; font-weight: 700; font-size: 0.9rem; text-decoration: none;
-        display: flex; align-items: center;
-    }
+    .btn-home { background-color: #f1f3f4; color: #3c4043; border: none; border-radius: 30px; padding: 6px 14px; font-weight: 700; font-size: 0.9rem; text-decoration: none; display: flex; align-items: center; }
     .btn-home span { margin-left: 5px; }
     #calendar-container { padding: 5px; }
     #calendar { height: calc(100vh - 70px); }
@@ -26,9 +22,7 @@
 <body>
 
 <div class="header-bar">
-    <a href="{% url 'home' %}" class="btn-home">
-        🏠 <span>HOME</span>
-    </a>
+    <a href="{% url 'home' %}" class="btn-home">🏠 <span>HOME</span></a>
     <h5 class="fw-bold m-0 ms-3">제일약국 캘린더</h5>
 </div>
 
@@ -81,10 +75,11 @@
 
     calendar.render();
 
-    // [중요] 팝업에서 보낸 'submitted' 신호를 받아 팝업을 닫고 새로고침
+    // 핵심: 메시지 수신 시 캘린더를 즉시 리프레시함
     window.addEventListener("message", function(event) {
         if (event.data === "submitted") {
-            applyModal.hide();
+            applyModal.hide(); 
+            // 캘린더 데이터를 다시 가져오고 화면을 갱신
             calendar.refetchEvents();
         }
     });

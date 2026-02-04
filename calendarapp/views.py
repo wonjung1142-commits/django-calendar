@@ -39,22 +39,11 @@ def calendar_view(request):
 
 
 def event_list(request):
-    year = datetime.now().year
-    holidays = get_korean_holidays(year)
+    # 캐시 방지를 위해 항상 최신 데이터를 반환하도록 설정
     events = Event.objects.all()
     event_data = []
-
     for e in events:
-        # 색상 변경 로직
-        if e.leave_type == '월차':
-            color = '#1a73e8'  # 파랑
-        elif e.leave_type == '반차':
-            color = '#f9ab00'  # 주황
-        elif e.leave_type == '휴가':
-            color = '#34a853'  # 초록
-        else:
-            color = '#70757a'  # 기본 회색
-
+        color = '#1a73e8' if e.leave_type == '월차' else '#f9ab00' if e.leave_type == '반차' else '#34a853'
         event_data.append({
             'id': e.id,
             'title': f"{e.employee.name}({e.leave_type})",
@@ -63,6 +52,8 @@ def event_list(request):
             'allDay': True,
             'color': color
         })
+    year = datetime.now().year
+    holidays = get_korean_holidays(year)
     return JsonResponse(holidays + event_data, safe=False)
 
 
@@ -83,20 +74,10 @@ def apply_view(request):
             if saved_event.leave_type in ["월차", "반차"]:
                 saved_event.end = saved_event.start
             saved_event.save()
-            # 저장 성공 시 is_success 전달
             return render(request, "calendarapp/apply.html", {"is_success": True})
     else:
-        initial_data = {"start": date_str, "end": date_str} if date_str else {}
+        initial = {"start": date_str, "end": date_str} if date_str else {}
         form = EventForm(instance=event) if event else EventForm(
-            initial=initial_data)
+            initial=initial)
 
     return render(request, "calendarapp/apply.html", {"form": form, "is_edit": bool(event)})
-
-
-def employee_usage(request, employee_id):
-    employee = get_object_or_404(Employee, id=employee_id)
-    annual_half = Event.objects.filter(employee=employee, leave_type__in=[
-                                       "월차", "반차"]).order_by('-start')
-    leave = Event.objects.filter(
-        employee=employee, leave_type="휴가").order_by('-start')
-    return render(request, 'calendarapp/employee_usage.html', {'employee': employee, 'annual_half': annual_half, 'leave': leave})

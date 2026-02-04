@@ -13,7 +13,7 @@ def inventory_list(request):
     cabinet = request.GET.get('cabinet', '')
     code_filter = request.GET.get('code_filter', 'all')
 
-    # 검색어나 약장이 선택되었을 때만 결과 노출 (로딩 최적화)
+    # 검색어나 약장이 선택되었을 때만 결과 노출
     is_search = bool(q or cabinet)
     medicines = MedicineMaster.objects.all().select_related('location')
 
@@ -31,7 +31,7 @@ def inventory_list(request):
         medicines = medicines.filter(
             Q(code='') | Q(code='0') | Q(code__isnull=True))
 
-    # 약장 목록 (에러 방지를 위해 미리 정렬)
+    # 약장 목록
     locations = MedicineLocation.objects.all().order_by('pos_number')
 
     return render(request, 'inventory/inventory_list.html', {
@@ -53,18 +53,17 @@ def medicine_save(request):
         spec = request.POST.get('spec', '')
         loc_num = request.POST.get('location', '미지정')
 
-        # 위치 객체 생성 또는 가져오기
         location_obj, _ = MedicineLocation.objects.get_or_create(
             pos_number=loc_num)
 
-        if med_id:  # 수정
+        if med_id:
             medicine = get_object_or_404(MedicineMaster, id=med_id)
             medicine.name = name
             medicine.code = code
             medicine.specification = spec
             medicine.location = location_obj
             medicine.save()
-        else:  # 추가
+        else:
             MedicineMaster.objects.create(
                 name=name, code=code, specification=spec, location=location_obj
             )
@@ -73,7 +72,7 @@ def medicine_save(request):
 
 
 def medicine_upload(request):
-    """CSV 업로드 뷰 (기존 유지)"""
+    """CSV 업로드 뷰"""
     if request.method == "POST":
         csv_file = request.FILES.get('file')
         if not csv_file:

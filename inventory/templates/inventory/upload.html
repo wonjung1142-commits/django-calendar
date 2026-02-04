@@ -18,7 +18,9 @@
                 {% endif %}
 
                 <form method="post" enctype="multipart/form-data">
-                    {% csrf_token %} <div class="mb-4">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
                         <label class="form-label fw-bold">CSV 파일 선택</label>
                         <input type="file" name="file" class="form-control" accept=".csv" required>
                     </div>

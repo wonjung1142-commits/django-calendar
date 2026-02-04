@@ -1,0 +1,20 @@
+# 데이터베이스 파일 제외 (서버 데이터 보존용)
+db.sqlite3
+db.sqlite3-journal
+
+# 파이썬 캐시 및 실행 파일
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 가상환경
+venv/
+.venv/
+env/
+
+# OS 생성 파일
+.DS_Store
+Thumbs.db
+
+# 정적 파일 모음 (배포 시 생성됨)
+staticfiles/

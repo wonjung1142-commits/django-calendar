@@ -5,6 +5,6 @@ app_name = 'inventory'
 
 urlpatterns = [
     path('', views.inventory_list, name='inventory_list'),
-    path('upload/', views.medicine_upload, name='medicine_upload'),
-    path('save/', views.medicine_save, name='medicine_save'),  # 추가/수정 경로
+    # path('upload/', views.medicine_upload ... ) <-- 이 줄을 과감히 지우세요!
+    path('save/', views.medicine_save, name='medicine_save'),
 ]

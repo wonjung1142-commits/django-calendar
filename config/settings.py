@@ -35,12 +35,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# CSRF 보안 설정 추가 (이 부분이 없으면 403 에러가 납니다)
+# CSRF 신뢰 설정 (403 방지)
 CSRF_TRUSTED_ORIGINS = [
     'https://port-0-django-calendar-mjs53602fbb241ed.sel3.cloudtype.app',
 ]
 
-X_FRAME_OPTIONS = 'SAMEORIGIN'
 ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
@@ -60,23 +59,22 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+# 데이터베이스 설정
 DATABASE_URL = "postgresql://neondb_owner:npg_0nL2HwCDASZs@ep-wandering-mode-a13klzbt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 
 DATABASES = {
     'default': dj_database_url.config(
         default=DATABASE_URL,
         conn_max_age=600,
-        conn_health_checks=True,
     )
 }
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# 언어 및 시간 설정
 LANGUAGE_CODE = 'ko-kr'
 TIME_ZONE = 'Asia/Seoul'
 USE_I18N = True

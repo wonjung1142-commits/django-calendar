@@ -2,9 +2,10 @@
 from django.urls import path
 from . import views
 
-app_name = 'inventory'  # 이 줄이 반드시 있어야 합니다!
+app_name = 'inventory'
 
 urlpatterns = [
-    # name='inventory_list' 이 부분이 index.html의 이름과 일치해야 합니다.
     path('', views.inventory_list, name='inventory_list'),
+    # 아래 줄이 빠져 있었습니다. 반드시 추가하세요!
+    path('upload/', views.medicine_upload, name='medicine_upload'),
 ]

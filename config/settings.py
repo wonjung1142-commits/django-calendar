@@ -35,6 +35,11 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# CSRF 보안 설정 추가 (이 부분이 없으면 403 에러가 납니다)
+CSRF_TRUSTED_ORIGINS = [
+    'https://port-0-django-calendar-mjs53602fbb241ed.sel3.cloudtype.app',
+]
+
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 ROOT_URLCONF = 'config.urls'
 
@@ -55,7 +60,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-# [핵심 수정] SQLite 대신 Neon PostgreSQL 연결 주소 적용
 DATABASE_URL = "postgresql://neondb_owner:npg_0nL2HwCDASZs@ep-wandering-mode-a13klzbt-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require"
 
 DATABASES = {
@@ -76,9 +80,9 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'ko-kr'
 TIME_ZONE = 'Asia/Seoul'
 USE_I18N = True
-USE_TZ = False
+USE_TZ = True
 
-STATIC_URL = '/static/'
+STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 

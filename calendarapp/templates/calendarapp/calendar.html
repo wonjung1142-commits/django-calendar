@@ -4,40 +4,16 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>제일약국 캘린더</title>
-  
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-  
   <style>
-    /* 1. 삼성 캘린더 스타일 UI */
     body { background-color: #ffffff; font-family: 'Pretendard', -apple-system, sans-serif; overflow: hidden; touch-action: none; }
     #calendar-container { padding: 10px; margin: 0; }
     #calendar { height: calc(100vh - 70px); }
-
     a { text-decoration: none !important; color: #202124 !important; }
-
-    /* 2. 주말 및 공휴일 빨간색 표시 */
-    .fc-col-header-cell.fc-day-sun a, 
-    .fc-daygrid-day.fc-day-sun .fc-daygrid-day-number,
-    .holiday-red .fc-daygrid-day-number { color: #d93025 !important; }
-
-    /* 토요일 파란색 */
-    .fc-col-header-cell.fc-day-sat a, 
-    .fc-daygrid-day.fc-day-sat .fc-daygrid-day-number { color: #1a73e8 !important; }
-
-    /* 3. 오늘 날짜 원형 강조 */
-    .fc-day-today { background: transparent !important; }
-    .fc-day-today .fc-daygrid-day-number { 
-        background-color: #1a73e8; color: white !important; 
-        border-radius: 50%; width: 28px; height: 28px; 
-        display: flex; align-items: center; justify-content: center; margin: 4px auto !important;
-    }
-
-    .fc-event { border: none !important; padding: 2px 6px !important; border-radius: 4px !important; font-size: 0.8rem !important; font-weight: 500 !important; color: white !important; }
-    .fc-theme-standard td, .fc-theme-standard th { border: 1px solid #f1f3f4 !important; }
-
-    /* 모바일에서 스와이프가 잘 되도록 터치 영역 최적화 */
-    .fc-view-harness { touch-action: pan-y; }
+    .fc-col-header-cell.fc-day-sun a, .fc-daygrid-day.fc-day-sun .fc-daygrid-day-number, .holiday-red .fc-daygrid-day-number { color: #d93025 !important; }
+    .fc-col-header-cell.fc-day-sat a, .fc-daygrid-day.fc-day-sat .fc-daygrid-day-number { color: #1a73e8 !important; }
+    .fc-event { border: none !important; padding: 2px 4px; border-radius: 4px; font-size: 0.85em; font-weight: 500; }
   </style>
 </head>
 <body>
@@ -48,33 +24,31 @@
 
 <div class="modal fade" id="applyModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content shadow-lg border-0" style="border-radius: 20px; overflow: hidden;">
-      <div class="modal-header border-0">
-        <h5 class="modal-title fw-bold">📝 일정 관리</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
+    <div class="modal-content" style="border-radius: 20px; border: none;">
       <div class="modal-body p-0">
-        <iframe id="applyFrame" src="" style="width:100%; height:500px; border:none;"></iframe>
+        <iframe id="applyFrame" src="" style="width:100%; height:450px; border:none; border-radius: 20px;"></iframe>
       </div>
     </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
+  document.addEventListener('DOMContentLoaded', function() {
     const calendarEl = document.getElementById('calendar');
-    const applyFrame = document.getElementById('applyFrame');
     const applyModal = new bootstrap.Modal(document.getElementById('applyModal'));
+    const applyFrame = document.getElementById('applyFrame');
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: 'dayGridMonth',
       locale: 'ko',
       headerToolbar: { left: 'today prev,next', center: 'title', right: '' },
-      events: '/events/',
+      
+      // [수정] URL 네임스페이스 적용
+      events: "{% url 'calendarapp:event_list' %}",
 
       eventDidMount: function(info) {
         if (info.event.extendedProps.isHoliday) {
@@ -86,42 +60,34 @@
       },
 
       dateClick: function (info) {
-        applyFrame.src = `/apply/?date=${info.dateStr}`;
+        // [수정] URL 네임스페이스 적용
+        applyFrame.src = "{% url 'calendarapp:apply' %}?date=" + info.dateStr;
         applyModal.show();
       },
 
       eventClick: function (info) {
-        applyFrame.src = `/apply/?edit=${info.event.id}`;
+        // [수정] URL 네임스페이스 적용
+        applyFrame.src = "{% url 'calendarapp:apply' %}?edit=" + info.event.id;
         applyModal.show();
       }
     });
 
     calendar.render();
 
-    // --- [수정된 스와이프 로직] ---
-    // 캘린더 내부의 실제 날짜 판(harness)을 타겟으로 잡습니다.
+    window.addEventListener("message", function(event) {
+        if (event.data === "submitted") {
+            applyModal.hide();
+            calendar.refetchEvents();
+        }
+    });
+
     const harness = document.querySelector('.fc-view-harness');
     if (harness) {
         const mc = new Hammer(harness);
-        
-        // 방향 설정 (가로 스와이프 허용)
         mc.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
-
-        mc.on("swiperight", function() {
-            calendar.prev(); // 오른쪽으로 밀면 이전달
-        });
-
-        mc.on("swipeleft", function() {
-            calendar.next(); // 왼쪽으로 밀면 다음달
-        });
+        mc.on("swiperight", () => calendar.prev());
+        mc.on("swipeleft", () => calendar.next());
     }
-
-    window.addEventListener('message', function(e) {
-      if (e.data === 'reload') {
-        applyModal.hide();
-        location.reload();
-      }
-    });
   });
 </script>
 </body>

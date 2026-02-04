@@ -42,6 +42,7 @@ def event_list(request):
     events = Event.objects.all()
     event_data = []
     for e in events:
+        # 월차: 파랑, 반차: 주황, 휴가: 초록
         color = '#1a73e8' if e.leave_type == '월차' else '#f9ab00' if e.leave_type == '반차' else '#34a853'
         event_data.append({
             'id': e.id,
@@ -81,7 +82,7 @@ def apply_view(request):
 
     return render(request, "calendarapp/apply.html", {"form": form, "is_edit": bool(event)})
 
-# [수정] 아래 함수가 누락되어 배포 에러가 발생했었습니다. 반드시 포함해주세요.
+# [중요] 누락되었던 함수 추가
 
 
 def employee_usage(request, employee_id):

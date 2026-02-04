@@ -1,14 +1,9 @@
 from django.db import models
-from calendarapp.models import Employee
 
 
 class MedicineLocation(models.Model):
     pos_number = models.CharField(
-        max_length=50, unique=True, verbose_name="위치 번호")
-    description = models.CharField(
-        max_length=200, null=True, blank=True, verbose_name="위치 상세")
-    assigned_staff = models.ForeignKey(
-        Employee, on_delete=models.SET_NULL, null=True, blank=True)
+        max_length=50, unique=True, verbose_name="위치번호")
 
     def __str__(self):
         return self.pos_number
@@ -16,29 +11,23 @@ class MedicineLocation(models.Model):
 
 class MedicineMaster(models.Model):
     name = models.CharField(max_length=200, verbose_name="약품명")
-    specification = models.CharField(max_length=100, verbose_name="규격")
-    code = models.CharField(max_length=50, verbose_name="보험코드")
-    # 위치 정보와 직접 연결 (에러 방지를 위해 null=True 추가)
+    code = models.CharField(max_length=50, blank=True,
+                            null=True, verbose_name="보험코드")
+    specification = models.CharField(
+        max_length=100, blank=True, null=True, verbose_name="규격")
     location = models.ForeignKey(
-        MedicineLocation,
-        on_delete=models.CASCADE,
-        related_name='medicines',
-        verbose_name="위치",
-        null=True, blank=True
-    )
-
-    class Meta:
-        unique_together = ('name', 'specification', 'location')
+        MedicineLocation, on_delete=models.SET_NULL, null=True, verbose_name="위치")
 
     def __str__(self):
-        loc_name = self.location.pos_number if self.location else "위치미지정"
-        return f"{self.name} ({self.specification}) - {loc_name}"
+        return self.name
+
+# 이 모델이 없으면 500 에러가 날 수 있습니다.
 
 
 class MedicineStock(models.Model):
-    medicine = models.ForeignKey(
-        MedicineMaster, on_delete=models.CASCADE, related_name='stocks', verbose_name="약품정보")
-    expiry_date = models.DateField(null=True, blank=True, verbose_name="유통기한")
-    quantity = models.IntegerField(default=0, verbose_name="재고량")
-    is_return_needed = models.BooleanField(default=False, verbose_name="반품필요")
-    updated_at = models.DateTimeField(auto_now=True)
+    medicine = models.OneToOneField(
+        MedicineMaster, on_delete=models.CASCADE, related_name='stock')
+    quantity = models.IntegerField(default=0, verbose_name="재고수량")
+
+    def __str__(self):
+        return f"{self.medicine.name} 재고"

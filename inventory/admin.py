@@ -1,6 +1,8 @@
 from django.contrib import admin
 from .models import MedicineLocation, MedicineMaster
 
+# MedicineStock 관련 코드는 모두 삭제해야 합니다.
+
 
 @admin.register(MedicineLocation)
 class MedicineLocationAdmin(admin.ModelAdmin):

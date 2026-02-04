@@ -1,74 +1,68 @@
 {% extends 'base.html' %}
 {% block content %}
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-
 <style>
-    body { background-color: #f0f2f5; }
-    .cabinet-card { background: white; border-radius: 15px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-    .btn-cabinet { width: 42px; height: 42px; margin: 3px; display: inline-flex; align-items: center; justify-content: center; font-size: 0.85rem; border-radius: 10px; }
-    .medicine-card { border-radius: 12px; border: none; transition: 0.2s; cursor: pointer; }
-    .medicine-card:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); }
-    .filter-pill { border-radius: 20px; font-size: 0.85rem; padding: 5px 15px; }
+    body { background-color: #f7f9fa; font-family: 'Pretendard', sans-serif; }
+    .nav-naver { background: #03cf5d; color: white; border-radius: 25px; border: none; padding: 10px 22px; font-weight: bold; transition: 0.2s; }
+    .nav-naver:hover { background: #02b350; transform: scale(1.02); }
+    .card-rounded { border-radius: 20px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); background: white; }
+    .btn-pill { border-radius: 20px; padding: 6px 18px; font-size: 0.9rem; border: 1px solid #eee; }
+    .cabinet-btn { width: 45px; height: 45px; border-radius: 12px; margin: 3px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid #eee; background: white; transition: 0.2s; }
+    .cabinet-btn.active { background: #03cf5d; color: white; border-color: #03cf5d; font-weight: bold; }
+    .medicine-card { border-radius: 18px; border: none; transition: 0.2s; cursor: pointer; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+    .medicine-card:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.08); }
 </style>
 
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="fw-bold text-primary m-0">💊 약품 재고 마스터</h4>
-        <button class="btn btn-primary rounded-pill px-4 shadow-sm" onclick="openModal()">+ 약품 신규 추가</button>
+        <h4 class="fw-bold m-0" style="color: #1e1e1e;">💊 약품 재고 관리</h4>
+        <button class="nav-naver shadow-sm" onclick="openModal()">+ 새 약품 등록</button>
     </div>
 
-    <div class="card border-0 shadow-sm mb-4" style="border-radius: 15px;">
-        <div class="card-body">
-            <form method="get" id="filterForm">
-                <div class="input-group mb-3">
-                    <input type="text" name="q" class="form-control border-0 bg-light" placeholder="약품명 또는 보험코드로 검색하세요" value="{{ q }}" style="border-radius: 10px 0 0 10px;">
-                    <button class="btn btn-primary px-4" type="submit" style="border-radius: 0 10px 10px 0;">검색</button>
+    <div class="card card-rounded p-3 mb-4">
+        <form method="get" class="row g-2">
+            <div class="col-12">
+                <div class="input-group">
+                    <input type="text" name="q" class="form-control border-0 bg-light rounded-pill px-4" placeholder="약품명 또는 보험코드 검색" value="{{ q }}">
+                    <button class="btn btn-link text-success" type="submit" style="text-decoration:none;">🔍</button>
                 </div>
-                
-                <div class="d-flex gap-2 flex-wrap">
-                    <input type="radio" class="btn-check" name="code_filter" id="all" value="all" {% if code_filter == 'all' %}checked{% endif %} onchange="this.form.submit()">
-                    <label class="btn btn-outline-secondary filter-pill" for="all">전체</label>
-                    <input type="radio" class="btn-check" name="code_filter" id="yes" value="yes" {% if code_filter == 'yes' %}checked{% endif %} onchange="this.form.submit()">
-                    <label class="btn btn-outline-success filter-pill" for="yes">보험코드 있음</label>
-                    <input type="radio" class="btn-check" name="code_filter" id="no" value="no" {% if code_filter == 'no' %}checked{% endif %} onchange="this.form.submit()">
-                    <label class="btn btn-outline-danger filter-pill" for="no">보험코드 없음</label>
-                </div>
-            </form>
-        </div>
+            </div>
+            <div class="col-12 mt-3 d-flex gap-2 flex-wrap">
+                <a href="?code_filter=all" class="btn btn-pill {% if code_filter == 'all' %}btn-success text-white border-0{% else %}btn-white{% endif %}">전체</a>
+                <a href="?code_filter=yes" class="btn btn-pill {% if code_filter == 'yes' %}btn-success text-white border-0{% else %}btn-white{% endif %}">보험코드 있음</a>
+                <a href="?code_filter=no" class="btn btn-pill {% if code_filter == 'no' %}btn-success text-white border-0{% else %}btn-white{% endif %}">보험코드 없음</a>
+            </div>
+        </form>
     </div>
 
-    <div class="cabinet-card mb-4">
-        <h6 class="fw-bold mb-3"><i class="bi bi-grid-3x3-gap"></i> 약장 위치 선택</h6>
+    <div class="card card-rounded p-3 mb-4">
+        <h6 class="fw-bold mb-3 text-secondary" style="font-size: 0.85rem; letter-spacing: -0.5px;">📍 약장 위치 선택</h6>
         <div class="d-flex flex-wrap">
-            <a href="?cabinet=&code_filter={{ code_filter }}" class="btn {% if not selected_cabinet %}btn-dark{% else %}btn-outline-dark{% endif %} btn-cabinet">전</a>
             {% for loc in locations %}
-                <a href="?cabinet={{ loc.pos_number }}&code_filter={{ code_filter }}" 
-                   class="btn {% if selected_cabinet == loc.pos_number %}btn-primary{% else %}btn-outline-primary{% endif %} btn-cabinet">
-                    {{ loc.pos_number }}
-                </a>
+            <a href="?cabinet={{ loc.pos_number }}&code_filter={{ code_filter }}" 
+               class="cabinet-btn {% if selected_cabinet == loc.pos_number %}active{% endif %} text-decoration-none">
+                {{ loc.pos_number }}
+            </a>
             {% endfor %}
         </div>
     </div>
 
-    <div class="results">
+    <div id="results">
         {% if not is_search %}
             <div class="text-center py-5">
-                <i class="bi bi-capsule-pill text-muted" style="font-size: 3rem; opacity: 0.3;"></i>
-                <p class="text-muted mt-3">약장 번호를 선택하거나 검색어를 입력하여 리스트를 확인하세요.</p>
+                <p class="text-muted" style="font-size: 0.95rem;">약장 번호를 선택하거나 검색어를 입력하세요.</p>
             </div>
         {% else %}
-            <p class="small text-muted mb-3">총 {{ medicines_list|length }}개의 약품이 발견되었습니다.</p>
             <div class="row row-cols-1 row-cols-md-2 g-3">
                 {% for m in medicines_list %}
                 <div class="col">
-                    <div class="card medicine-card shadow-sm h-100">
-                        <div class="card-body d-flex justify-content-between align-items-center">
-                            <div onclick="openEditModal('{{ m.id }}', '{{ m.name|escapejs }}', '{{ m.code|escapejs }}', '{{ m.specification|escapejs }}', '{{ m.location.pos_number|escapejs }}')">
-                                <span class="badge bg-light text-primary mb-1">{{ m.location.pos_number }}</span>
-                                <h6 class="fw-bold mb-1">{{ m.name }}</h6>
-                                <div class="small text-secondary">{{ m.specification }} | 코드: {{ m.code|default:"-" }}</div>
+                    <div class="card medicine-card p-3 h-100">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div onclick="openModal('{{ m.id }}', '{{ m.name|escapejs }}', '{{ m.code|escapejs }}', '{{ m.specification|escapejs }}', '{{ m.location.pos_number|escapejs }}')">
+                                <span class="badge bg-light text-success rounded-pill px-3 mb-1" style="font-size: 0.75rem;">{{ m.location.pos_number }}</span>
+                                <h6 class="fw-bold m-0" style="color: #333; font-size: 1rem;">{{ m.name }}</h6>
+                                <small class="text-muted" style="font-size: 0.8rem;">{{ m.specification }} | {{ m.code|default:"코드없음" }}</small>
                             </div>
-                            <button class="btn btn-sm btn-light text-primary fw-bold" onclick="openEditModal('{{ m.id }}', '{{ m.name|escapejs }}', '{{ m.code|escapejs }}', '{{ m.specification|escapejs }}', '{{ m.location.pos_number|escapejs }}')">수정</button>
+                            <button class="btn btn-sm btn-outline-success btn-pill" onclick="openModal('{{ m.id }}', '{{ m.name|escapejs }}', '{{ m.code|escapejs }}', '{{ m.specification|escapejs }}', '{{ m.location.pos_number|escapejs }}')">수정</button>
                         </div>
                     </div>
                 </div>
@@ -80,37 +74,36 @@
 
 <div class="modal fade" id="medModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg" style="border-radius: 20px;">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="fw-bold" id="mTitle">약품 정보</h5>
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 28px;">
+            <div class="modal-header border-0 pb-0 pt-4 px-4">
+                <h5 class="fw-bold" id="modalTitle" style="color: #1e1e1e;">약품 정보</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="medForm">
                 {% csrf_token %}
-                <input type="hidden" name="med_id" id="m_id">
-                <div class="modal-body">
+                <input type="hidden" name="med_id" id="form_id">
+                <div class="modal-body p-4">
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">약품명</label>
-                        <input type="text" name="name" id="m_name" class="form-control" required>
+                        <label class="form-label small fw-bold text-secondary">약품명</label>
+                        <input type="text" name="name" id="form_name" class="form-control rounded-3 border-light bg-light py-2" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">보험코드</label>
-                        <input type="text" name="code" id="m_code" class="form-control">
+                        <label class="form-label small fw-bold text-secondary">보험코드</label>
+                        <input type="text" name="code" id="form_code" class="form-control rounded-3 border-light bg-light py-2">
                     </div>
                     <div class="row">
                         <div class="col-6 mb-3">
-                            <label class="form-label small fw-bold">규격</label>
-                            <input type="text" name="spec" id="m_spec" class="form-control">
+                            <label class="form-label small fw-bold text-secondary">규격</label>
+                            <input type="text" name="spec" id="form_spec" class="form-control rounded-3 border-light bg-light py-2">
                         </div>
                         <div class="col-6 mb-3">
-                            <label class="form-label small fw-bold">위치(약장번호)</label>
-                            <input type="text" name="location" id="m_loc" class="form-control" required>
+                            <label class="form-label small fw-bold text-secondary">위치(약장)</label>
+                            <input type="text" name="location" id="form_loc" class="form-control rounded-3 border-light bg-light py-2" required>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">닫기</button>
-                    <button type="button" class="btn btn-primary rounded-pill px-4" onclick="doSave()">저장</button>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="nav-naver w-100 py-3 shadow-sm" onclick="saveData()">데이터 저장하기</button>
                 </div>
             </form>
         </div>
@@ -118,32 +111,20 @@
 </div>
 
 <script>
-let modalInstance;
-document.addEventListener('DOMContentLoaded', function() {
-    modalInstance = new bootstrap.Modal(document.getElementById('medModal'));
-});
+let medModal;
+document.addEventListener('DOMContentLoaded', () => medModal = new bootstrap.Modal(document.getElementById('medModal')));
 
-function openModal() {
-    document.getElementById('m_id').value = '';
-    document.getElementById('m_name').value = '';
-    document.getElementById('m_code').value = '';
-    document.getElementById('m_spec').value = '';
-    document.getElementById('m_loc').value = '';
-    document.getElementById('mTitle').innerText = "새 약품 추가";
-    modalInstance.show();
+function openModal(id='', name='', code='', spec='', loc='') {
+    document.getElementById('form_id').value = id;
+    document.getElementById('form_name').value = name;
+    document.getElementById('form_code').value = code;
+    document.getElementById('form_spec').value = spec;
+    document.getElementById('form_loc').value = loc;
+    document.getElementById('modalTitle').innerText = id ? "약품 정보 수정" : "새 약품 등록";
+    medModal.show();
 }
 
-function openEditModal(id, name, code, spec, loc) {
-    document.getElementById('m_id').value = id;
-    document.getElementById('m_name').value = name;
-    document.getElementById('m_code').value = code;
-    document.getElementById('m_spec').value = spec;
-    document.getElementById('m_loc').value = loc;
-    document.getElementById('mTitle').innerText = "약품 정보 수정";
-    modalInstance.show();
-}
-
-function doSave() {
+function saveData() {
     const fData = new FormData(document.getElementById('medForm'));
     fetch("{% url 'inventory:medicine_save' %}", {
         method: "POST",

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>제일약국 재고관리</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; padding: 20px; font-family: 'Pretendard', sans-serif; }
+        .container-box { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        
+        /* 필터 섹션 개선 */
+        .filter-section { background-color: #fff; border-radius: 15px; padding: 25px; margin-bottom: 25px; border: 1px solid #dee2e6; }
+        
+        /* 약장 버튼 스타일 */
+        .cab-group-container { display: flex; flex-direction: column; gap: 15px; }
+        .base-filters { display: flex; gap: 10px; margin-bottom: 10px; padding-bottom: 15px; border-bottom: 2px solid #f1f3f5; }
+        
+        .cabinet-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 10px; border-radius: 10px; background-color: #f9fafb; }
+        .group-label { min-width: 90px; font-weight: bold; color: #495057; font-size: 0.85rem; }
+        
+        .cab-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid #dee2e6; background: white; text-decoration: none; color: #444; font-size: 0.9rem; transition: all 0.2s; }
+        .cab-btn:hover { background: #e9ecef; transform: translateY(-1px); }
+        .cab-btn.active { background: #0d6efd; color: white; border-color: #0d6efd; font-weight: bold; box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2); }
+        
+        /* 수정 모드 관련 */
+        .edit-mode .view-text { display: none; }
+        .edit-mode .edit-input { display: block; }
+        .view-mode .view-text { display: block; }
+        .view-mode .edit-input { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container-box">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold m-0 text-primary">💊 약품 재고 관리</h2>
+        <button class="btn btn-primary btn-lg fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#addMedModal">+ 약품 추가</button>
+    </div>
+
+    <div class="filter-section shadow-sm">
+        <form method="get" class="row g-3 align-items-center mb-4">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <input type="text" name="q" class="form-control" placeholder="약품명 검색..." value="{{ q }}">
+                    <button class="btn btn-dark px-4" type="submit">검색</button>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                <div class="btn-group shadow-sm">
+                    <a href="?q={{ q }}&cabinet={{ selected_cabinet }}" class="btn btn-sm btn-outline-secondary {% if not code_filter %}active{% endif %}">전체</a>
+                    <a href="?q={{ q }}&cabinet={{ selected_cabinet }}&code_filter=yes" class="btn btn-sm btn-outline-success {% if code_filter == 'yes' %}active{% endif %}">보험코드 있음</a>
+                    <a href="?q={{ q }}&cabinet={{ selected_cabinet }}&code_filter=no" class="btn btn-sm btn-outline-danger {% if code_filter == 'no' %}active{% endif %}">보험코드 없음</a>
+                </div>
+            </div>
+        </form>
+
+        <h6 class="fw-bold text-secondary mb-3">📂 약장 번호 필터</h6>
+        <div class="cab-group-container">
+            <div class="base-filters">
+                <a href="?q={{ q }}&code_filter={{ code_filter }}" class="cab-btn {% if not selected_cabinet %}active{% endif %}">전체보기</a>
+                <a href="?q={{ q }}&code_filter={{ code_filter }}&cabinet=미지정" class="cab-btn {% if selected_cabinet == '미지정' %}active{% endif %}">📍 위치 미지정</a>
+            </div>
+
+            {% for range, numbers in cabinet_groups.items %}
+            <div class="cabinet-group">
+                <div class="group-label text-primary">{{ range }}</div>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for n in numbers %}
+                    <a href="?q={{ q }}&code_filter={{ code_filter }}&cabinet={{ n }}" class="cab-btn {% if selected_cabinet == n %}active{% endif %}">{{ n }}번</a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle text-center">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 10%">위치</th>
+                    <th style="width: 45%">약품명 (규격)</th>
+                    <th style="width: 15%">보험코드</th>
+                    <th style="width: 15%">재고량</th>
+                    <th style="width: 15%">관리</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for med in medicines_list %}
+                {% with stock=med.stocks.first %}
+                <tr id="row-{{ med.id }}" class="view-mode">
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="medicine_id" value="{{ med.id }}">
+                        <td>
+                            <span class="view-text fw-bold">{{ med.location.pos_number }}</span>
+                            <input type="text" name="pos_number" class="form-control form-control-sm edit-input text-center" value="{{ med.location.pos_number }}">
+                        </td>
+                        <td class="text-start ps-4">
+                            <span class="view-text text-dark">{{ med.name }} ({{ med.specification }})</span>
+                            <input type="text" name="medicine_name" class="form-control form-control-sm edit-input" value="{{ med.name }} ({{ med.specification }})">
+                        </td>
+                        <td>
+                            <span class="view-text">{{ med.code|default:"-" }}</span>
+                            <input type="text" name="insurance_code" class="form-control form-control-sm edit-input text-center" value="{{ med.code|default:'' }}">
+                        </td>
+                        <td>
+                            <span class="view-text">{{ stock.quantity|default:0 }}</span>
+                            <input type="number" name="quantity" class="form-control form-control-sm edit-input text-center" value="{{ stock.quantity|default:0 }}">
+                        </td>
+                        <td>
+                            <div class="view-text">
+                                <button type="button" class="btn btn-sm btn-outline-primary px-3" onclick="toggleEdit('{{ med.id }}')">수정</button>
+                            </div>
+                            <div class="edit-input">
+                                <div class="d-flex gap-1 justify-content-center">
+                                    <button type="submit" class="btn btn-sm btn-success">저장</button>
+                                    <button type="button" class="btn btn-sm btn-light border" onclick="toggleEdit('{{ med.id }}')">취소</button>
+                                </div>
+                            </div>
+                        </td>
+                    </form>
+                </tr>
+                {% endwith %}
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="addMedModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form method="post" class="modal-content shadow-lg">
+            {% csrf_token %}
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title fw-bold">➕ 새 약품 추가</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">약품명 (규격)</label>
+                    <input type="text" name="medicine_name" class="form-control" placeholder="예: 바로팜정 (500mg)" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">위치 번호</label>
+                    <input type="text" name="pos_number" class="form-control" placeholder="예: 1-1" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">보험코드</label>
+                    <input type="text" name="insurance_code" class="form-control" placeholder="보험코드가 없으면 비워두세요">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold small">초기 재고수량</label>
+                    <input type="number" name="quantity" class="form-control" value="0">
+                </div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">닫기</button>
+                <button type="submit" class="btn btn-primary px-4">등록하기</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function toggleEdit(id) {
+    const row = document.getElementById('row-' + id);
+    row.classList.toggle('view-mode');
+    row.classList.toggle('edit-mode');
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

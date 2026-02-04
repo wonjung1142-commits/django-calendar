@@ -1,11 +1,10 @@
-# [전체 교체용 코드] config/settings.py
 import os
 import dj_database_url
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-default-key')
-DEBUG = os.environ.get('DEBUG', 'False') == 'True'
+DEBUG = os.environ.get('DEBUG', 'True') == 'True'  # 로컬에선 True, 서버에선 False
 
 ALLOWED_HOSTS = [
     'port-0-django-calendar-mjs53602fbb241ed.sel3.cloudtype.app',
@@ -21,6 +20,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'calendarapp',
+    'inventory',  # 새로 만든 앱
 ]
 
 MIDDLEWARE = [
@@ -34,14 +34,13 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-# ★ 이 줄이 없으면 팝업창에서 "연결을 거부했습니다"가 뜹니다.
 X_FRAME_OPTIONS = 'SAMEORIGIN'
-
 ROOT_URLCONF = 'config.urls'
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],  # 공통 템플릿 폴더 설정
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -54,13 +53,19 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'config.wsgi.application'
+
+# ★ 데이터베이스 설정 수정 (내 컴퓨터와 서버 자동 구분)
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL'),
-        conn_max_age=600,
-        ssl_require=True
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 }
+
+# 서버(Cloudtype) 환경변수가 있다면 서버 DB 설정을 덮어씌웁니다.
+db_from_env = dj_database_url.config(conn_max_age=600, ssl_require=True)
+if db_from_env:
+    DATABASES['default'].update(db_from_env)
 
 LANGUAGE_CODE = 'ko-kr'
 TIME_ZONE = 'Asia/Seoul'

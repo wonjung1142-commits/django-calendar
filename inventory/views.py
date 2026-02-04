@@ -2,8 +2,8 @@ import io
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Q
 from django.http import JsonResponse
-# MedicineStock이 models.py에 있다면 포함, 없다면 제거
-from .models import MedicineMaster, MedicineLocation, MedicineStock
+# MedicineStock 임포트 제거
+from .models import MedicineMaster, MedicineLocation
 
 
 def inventory_list(request):
@@ -60,11 +60,10 @@ def medicine_save(request):
             medicine.location = location_obj
             medicine.save()
         else:
-            med = MedicineMaster.objects.create(
+            # MedicineStock 생성 부분 삭제
+            MedicineMaster.objects.create(
                 name=name, code=code, specification=spec, location=location_obj
             )
-            # 재고 데이터 자동 생성 (에러 방지용)
-            MedicineStock.objects.get_or_create(medicine=med)
 
         return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'error'}, status=400)

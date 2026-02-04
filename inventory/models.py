@@ -20,14 +20,3 @@ class MedicineMaster(models.Model):
 
     def __str__(self):
         return self.name
-
-# 이 모델이 없으면 500 에러가 날 수 있습니다.
-
-
-class MedicineStock(models.Model):
-    medicine = models.OneToOneField(
-        MedicineMaster, on_delete=models.CASCADE, related_name='stock')
-    quantity = models.IntegerField(default=0, verbose_name="재고수량")
-
-    def __str__(self):
-        return f"{self.medicine.name} 재고"

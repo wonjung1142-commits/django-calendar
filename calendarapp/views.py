@@ -39,10 +39,10 @@ def calendar_view(request):
 
 
 def event_list(request):
-    # 캐시 방지를 위해 항상 최신 데이터를 반환하도록 설정
     events = Event.objects.all()
     event_data = []
     for e in events:
+        # 색상: 월차(파랑), 반차(주황), 휴가(초록)
         color = '#1a73e8' if e.leave_type == '월차' else '#f9ab00' if e.leave_type == '반차' else '#34a853'
         event_data.append({
             'id': e.id,
@@ -81,3 +81,18 @@ def apply_view(request):
             initial=initial)
 
     return render(request, "calendarapp/apply.html", {"form": form, "is_edit": bool(event)})
+
+# [추가] 이 함수가 누락되어 에러가 났었습니다.
+
+
+def employee_usage(request, employee_id):
+    employee = get_object_or_404(Employee, id=employee_id)
+    annual_half = Event.objects.filter(employee=employee, leave_type__in=[
+                                       "월차", "반차"]).order_by('-start')
+    leave = Event.objects.filter(
+        employee=employee, leave_type="휴가").order_by('-start')
+    return render(request, 'calendarapp/employee_usage.html', {
+        'employee': employee,
+        'annual_half': annual_half,
+        'leave': leave
+    })

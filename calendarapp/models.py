@@ -9,8 +9,9 @@ class Employee(models.Model):
 
 
 class Event(models.Model):
+    # 명칭 변경: 연차 -> 월차
     LEAVE_TYPE_CHOICES = [
-        ('연차', '연차'),
+        ('월차', '월차'),
         ('반차', '반차'),
         ('휴가', '휴가'),
     ]

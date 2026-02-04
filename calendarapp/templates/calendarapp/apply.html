@@ -42,26 +42,28 @@
     </form>
   </div>
 </div>
+
 <script>
   const leaveTypeField = document.querySelector("#id_leave_type");
   const endFieldContainer = document.querySelector("#end-field-container");
+
   function toggleEndField() {
     if (!leaveTypeField) return;
     const value = leaveTypeField.value;
-    // models.py의 한글 값에 맞췄습니다.
-    if (value === '연차' || value === '반차') {
+    // 월차, 반차일 때는 종료 날짜 숨김
+    if (value === '월차' || value === '반차') {
       endFieldContainer.style.display = 'none';
     } else {
       endFieldContainer.style.display = 'block';
     }
   }
-  if (leaveTypeField) {
-    leaveTypeField.addEventListener("change", toggleEndField);
-    toggleEndField();
-  }
-  // views.py에서 보낸 성공 신호가 있으면 부모 창을 새로고침합니다.
+
+  leaveTypeField.addEventListener("change", toggleEndField);
+  window.onload = toggleEndField;
+
+  // [중요] 저장 성공 시 부모 창(calendar.html)에 신호 전송
   {% if is_success %}
-    window.parent.postMessage('reload', '*');
+    window.parent.postMessage('submitted', '*');
   {% endif %}
 </script>
 </body>

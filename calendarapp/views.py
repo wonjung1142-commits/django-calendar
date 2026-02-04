@@ -22,9 +22,13 @@ def get_korean_holidays(year):
                 items = [items]
             for item in items:
                 locdate = str(item['locdate'])
-                date_obj = datetime.strptime(locdate, '%Y%m%d').date()
-                holidays.append({'title': item['datename'], 'start': date_obj.isoformat(
-                ), 'allDay': True, 'isHoliday': True, 'backgroundColor': 'transparent', 'textColor': '#d93025'})
+                holidays.append({
+                    'title': item['dateName'],
+                    'start': f"{locdate[:4]}-{locdate[4:6]}-{locdate[6:8]}",
+                    'allDay': True,
+                    'display': 'background',
+                    'extendedProps': {'isHoliday': True}
+                })
     except:
         pass
     return holidays
@@ -35,14 +39,30 @@ def calendar_view(request):
 
 
 def event_list(request):
-    start_str = request.GET.get('start', '')
-    year = start_str.split('-')[0] if start_str else datetime.now().year
+    year = datetime.now().year
     holidays = get_korean_holidays(year)
     events = Event.objects.all()
     event_data = []
+
     for e in events:
-        event_data.append({'id': e.id, 'title': f"{e.employee.name}({e.leave_type})", 'start': e.start.isoformat(), 'end': (
-            e.end + timedelta(days=1)).isoformat(), 'allDay': True, 'color': '#1a73e8' if e.leave_type == '연차' else '#34a853'})
+        # 색상 변경 로직
+        if e.leave_type == '월차':
+            color = '#1a73e8'  # 파랑
+        elif e.leave_type == '반차':
+            color = '#f9ab00'  # 주황
+        elif e.leave_type == '휴가':
+            color = '#34a853'  # 초록
+        else:
+            color = '#70757a'  # 기본 회색
+
+        event_data.append({
+            'id': e.id,
+            'title': f"{e.employee.name}({e.leave_type})",
+            'start': e.start.isoformat(),
+            'end': (e.end + timedelta(days=1)).isoformat(),
+            'allDay': True,
+            'color': color
+        })
     return JsonResponse(holidays + event_data, safe=False)
 
 
@@ -55,25 +75,28 @@ def apply_view(request):
         if event and "delete" in request.POST:
             event.delete()
             return render(request, "calendarapp/apply.html", {"is_success": True})
+
         form = EventForm(
             request.POST, instance=event) if event else EventForm(request.POST)
         if form.is_valid():
             saved_event = form.save(commit=False)
-            if saved_event.leave_type in ["연차", "반차"]:
+            if saved_event.leave_type in ["월차", "반차"]:
                 saved_event.end = saved_event.start
             saved_event.save()
+            # 저장 성공 시 is_success 전달
             return render(request, "calendarapp/apply.html", {"is_success": True})
     else:
-        initial = {"start": date_str, "end": date_str} if date_str else {}
+        initial_data = {"start": date_str, "end": date_str} if date_str else {}
         form = EventForm(instance=event) if event else EventForm(
-            initial=initial)
+            initial=initial_data)
+
     return render(request, "calendarapp/apply.html", {"form": form, "is_edit": bool(event)})
 
 
 def employee_usage(request, employee_id):
     employee = get_object_or_404(Employee, id=employee_id)
     annual_half = Event.objects.filter(employee=employee, leave_type__in=[
-                                       "연차", "반차"]).order_by('-start')
+                                       "월차", "반차"]).order_by('-start')
     leave = Event.objects.filter(
         employee=employee, leave_type="휴가").order_by('-start')
     return render(request, 'calendarapp/employee_usage.html', {'employee': employee, 'annual_half': annual_half, 'leave': leave})

@@ -8,7 +8,14 @@
   <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
   <style>
     body { background-color: #ffffff; font-family: 'Pretendard', -apple-system, sans-serif; overflow: hidden; touch-action: none; }
-    #calendar-container { padding: 10px; margin: 0; }
+    .header-bar { background: white; border-bottom: 1px solid #f1f3f4; display: flex; align-items: center; padding: 10px 15px; height: 60px; }
+    .btn-home { 
+        background-color: #f1f3f4; color: #3c4043; border: none; border-radius: 30px; 
+        padding: 6px 14px; font-weight: 700; font-size: 0.9rem; text-decoration: none;
+        display: flex; align-items: center;
+    }
+    .btn-home span { margin-left: 5px; }
+    #calendar-container { padding: 5px; }
     #calendar { height: calc(100vh - 70px); }
     a { text-decoration: none !important; color: #202124 !important; }
     .fc-col-header-cell.fc-day-sun a, .fc-daygrid-day.fc-day-sun .fc-daygrid-day-number, .holiday-red .fc-daygrid-day-number { color: #d93025 !important; }
@@ -17,6 +24,13 @@
   </style>
 </head>
 <body>
+
+<div class="header-bar">
+    <a href="{% url 'home' %}" class="btn-home">
+        🏠 <span>HOME</span>
+    </a>
+    <h5 class="fw-bold m-0 ms-3">제일약국 캘린더</h5>
+</div>
 
 <div id="calendar-container">
   <div id="calendar"></div>
@@ -46,10 +60,7 @@
       initialView: 'dayGridMonth',
       locale: 'ko',
       headerToolbar: { left: 'today prev,next', center: 'title', right: '' },
-      
-      // [수정] URL 네임스페이스 적용
       events: "{% url 'calendarapp:event_list' %}",
-
       eventDidMount: function(info) {
         if (info.event.extendedProps.isHoliday) {
             const dateStr = info.event.startStr;
@@ -58,15 +69,11 @@
             info.el.style.display = 'none';
         }
       },
-
       dateClick: function (info) {
-        // [수정] URL 네임스페이스 적용
         applyFrame.src = "{% url 'calendarapp:apply' %}?date=" + info.dateStr;
         applyModal.show();
       },
-
       eventClick: function (info) {
-        // [수정] URL 네임스페이스 적용
         applyFrame.src = "{% url 'calendarapp:apply' %}?edit=" + info.event.id;
         applyModal.show();
       }
@@ -74,6 +81,7 @@
 
     calendar.render();
 
+    // [중요] 팝업에서 보낸 'submitted' 신호를 받아 팝업을 닫고 새로고침
     window.addEventListener("message", function(event) {
         if (event.data === "submitted") {
             applyModal.hide();

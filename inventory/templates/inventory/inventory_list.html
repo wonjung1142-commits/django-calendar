@@ -8,15 +8,27 @@
     <style>
         body { background-color: #f8f9fa; font-family: 'Pretendard', sans-serif; padding-bottom: 50px; }
         .sticky-header { position: sticky; top: 0; background: white; z-index: 1020; padding: 15px; border-bottom: 1px solid #eee; }
+        /* 홈 버튼 스타일 */
+        .btn-home { 
+            background-color: #f1f3f4; color: #3c4043; border: none; border-radius: 30px; 
+            padding: 6px 14px; font-weight: 700; font-size: 0.9rem; text-decoration: none;
+            display: flex; align-items: center; width: fit-content; margin-bottom: 15px;
+        }
+        .btn-home:active { background-color: #e8eaed; }
+        .btn-home span { margin-left: 5px; }
+
         .cabinet-btn { margin: 2px; border-radius: 8px; font-size: 0.85rem; padding: 5px 10px; }
         .medicine-card { border-radius: 15px; border: none; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
         .badge-loc { background-color: #e8f0fe; color: #1a73e8; font-weight: bold; font-size: 0.9rem; }
-        .cabinet-group-title { font-size: 0.8rem; color: #888; margin-top: 10px; display: block; }
     </style>
 </head>
 <body>
 
 <div class="sticky-header">
+    <a href="{% url 'home' %}" class="btn-home">
+        🏠 <span>HOME</span>
+    </a>
+
     <form method="get" class="mb-3">
         <div class="input-group shadow-sm">
             <input type="text" name="q" class="form-control border-0" placeholder="약품명 또는 위치 검색" value="{{ q }}">
@@ -26,9 +38,9 @@
 
     <div class="cabinet-section">
         <h6 class="fw-bold mb-2" style="font-size: 0.9rem;">📍 약장 빠른 선택</h6>
-        <div style="max-height: 150px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
+        <div style="max-height: 120px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
             {% for group, nums in cabinet_groups.items %}
-                <span class="cabinet-group-title">{{ group }}</span>
+                <small class="text-muted d-block mt-2" style="font-size: 0.75rem;">{{ group }}</small>
                 {% for n in nums %}
                     <a href="?cabinet={{ n }}" class="btn {% if selected_cabinet == n %}btn-primary{% else %}btn-outline-secondary{% endif %} cabinet-btn">{{ n }}</a>
                 {% endfor %}

@@ -1,38 +1,40 @@
 from django.contrib import admin
+from django.utils.timezone import now
+from django.utils.safestring import mark_safe
 from .models import Employee, Event
-
-
-@admin.register(Employee)
-class EmployeeAdmin(admin.ModelAdmin):
-    list_display = ('name',)
-    search_fields = ('name',)
 
 
 @admin.register(Event)
 class EventAdmin(admin.ModelAdmin):
-    # 1. 목록에 표시할 필드 (직원, 휴가종류, 사용일)
-    list_display = ('employee', 'leave_type', 'formatted_start_date')
-
-    # 2. 우측 필터 바 (직원이름, 사용일로 분류)
+    list_display = ('employee', 'display_leave_summary')
     list_filter = ('employee', 'leave_type', 'start')
-
-    # 3. 날짜 계층 구조 (상단에 연/월 선택 바 생성 - UI 핵심!)
     date_hierarchy = 'start'
-
-    # 4. 검색창 (직원 이름으로 검색 가능)
     search_fields = ('employee__name',)
 
-    # 5. 사용일 날짜 형식을 연/월/일로 표시하는 함수
-    def formatted_start_date(self, obj):
-        return obj.start.strftime('%Y/%m/%d')
+    def display_leave_summary(self, obj):
+        # 해당 직원의 해당 월 모든 휴가 내역을 묶어서 표시
+        leaves = Event.objects.filter(
+            employee=obj.employee,
+            start__year=obj.start.year,
+            start__month=obj.start.month
+        ).order_by('start')
 
-    formatted_start_date.short_description = "사용일(연/월/일)"
+        html = "".join(
+            [f"<div style='margin-bottom:3px;'><b>{l.leave_type}</b> {l.start.strftime('%y. %m. %d')}</div>" for l in leaves])
+        return mark_safe(html)
 
-    # UI 개선: 한 페이지에 표시할 개수 설정
-    list_per_page = 20
+    display_leave_summary.short_description = "해당 월 사용 현황"
+
+    def changelist_view(self, request, extra_context=None):
+        # 처음 접속 시 이번 달(2026년 2월 등)로 자동 리다이렉트
+        if 'start__year' not in request.GET and 'start__month' not in request.GET:
+            current = now()
+            q = request.GET.copy()
+            q['start__year'] = str(current.year)
+            q['start__month'] = str(current.month)
+            request.GET = q
+            request.META['QUERY_STRING'] = request.GET.urlencode()
+        return super().changelist_view(request, extra_context=extra_context)
 
 
-# 어드민 페이지 상단 타이틀 변경 (UI 커스텀)
 admin.site.site_header = "제일약국 관리자 포털"
-admin.site.site_title = "제일약국 어드민"
-admin.site.index_title = "약국 자동화 시스템 관리"

@@ -3,50 +3,42 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>약품 관리</title>
+    <title>제일약국 약품관리</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; font-family: 'Pretendard', sans-serif; padding-bottom: 50px; }
+        body { background-color: #f8f9fa; font-family: 'Pretendard', sans-serif; }
         .sticky-header { position: sticky; top: 0; background: white; z-index: 1020; padding: 15px; border-bottom: 1px solid #eee; }
-        /* 홈 버튼 스타일 */
-        .btn-home { 
-            background-color: #f1f3f4; color: #3c4043; border: none; border-radius: 30px; 
-            padding: 6px 14px; font-weight: 700; font-size: 0.9rem; text-decoration: none;
-            display: flex; align-items: center; width: fit-content; margin-bottom: 15px;
-        }
-        .btn-home:active { background-color: #e8eaed; }
-        .btn-home span { margin-left: 5px; }
-
-        .cabinet-btn { margin: 2px; border-radius: 8px; font-size: 0.85rem; padding: 5px 10px; }
-        .medicine-card { border-radius: 15px; border: none; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
-        .badge-loc { background-color: #e8f0fe; color: #1a73e8; font-weight: bold; font-size: 0.9rem; }
+        .btn-home { background-color: #f1f3f4; color: #3c4043; border-radius: 30px; padding: 6px 14px; font-weight: 700; text-decoration: none; display: inline-flex; align-items: center; margin-bottom: 15px; }
+        .cabinet-btn { margin: 3px; border-radius: 10px; font-size: 0.85rem; padding: 8px 12px; min-width: 60px; }
+        .medicine-card { border-radius: 15px; border: none; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .badge-loc { background-color: #e8f0fe; color: #1a73e8; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="sticky-header">
-    <a href="{% url 'home' %}" class="btn-home">
-        🏠 <span>HOME</span>
-    </a>
+    <div class="d-flex justify-content-between align-items-start">
+        <a href="{% url 'home' %}" class="btn-home">🏠 <span>HOME</span></a>
+        <a href="{% url 'inventory:medicine_upload' %}" class="btn btn-outline-primary btn-sm" style="border-radius: 20px;">파일 업로드</a>
+    </div>
 
     <form method="get" class="mb-3">
         <div class="input-group shadow-sm">
-            <input type="text" name="q" class="form-control border-0" placeholder="약품명 또는 위치 검색" value="{{ q }}">
+            <input type="text" name="q" class="form-control border-0" placeholder="약품명 또는 보험코드 검색" value="{{ q }}">
             <button class="btn btn-primary px-4" type="submit">검색</button>
         </div>
     </form>
 
     <div class="cabinet-section">
-        <h6 class="fw-bold mb-2" style="font-size: 0.9rem;">📍 약장 빠른 선택</h6>
-        <div style="max-height: 120px; overflow-y: auto; -webkit-overflow-scrolling: touch;">
-            {% for group, nums in cabinet_groups.items %}
-                <small class="text-muted d-block mt-2" style="font-size: 0.75rem;">{{ group }}</small>
-                {% for n in nums %}
-                    <a href="?cabinet={{ n }}" class="btn {% if selected_cabinet == n %}btn-primary{% else %}btn-outline-secondary{% endif %} cabinet-btn">{{ n }}</a>
-                {% endfor %}
+        <h6 class="fw-bold mb-2">📍 위치별 보기</h6>
+        <div class="d-flex flex-wrap" style="max-height: 150px; overflow-y: auto;">
+            <a href="?show_all=1" class="btn {% if not selected_cabinet %}btn-dark{% else %}btn-outline-dark{% endif %} cabinet-btn">전체</a>
+            {% for loc in locations %}
+                <a href="?cabinet={{ loc.pos_number }}" class="btn {% if selected_cabinet == loc.pos_number %}btn-primary{% else %}btn-outline-secondary{% endif %} cabinet-btn">
+                    {{ loc.pos_number }}
+                </a>
             {% endfor %}
         </div>
-        <a href="?show_all=1" class="btn btn-dark btn-sm w-100 mt-3 py-2" style="border-radius: 10px;">📦 전체 약품 보기</a>
     </div>
 </div>
 
@@ -54,26 +46,24 @@
     {% if not is_search %}
         <div class="text-center py-5">
             <div style="font-size: 4rem; opacity: 0.3;">💊</div>
-            <h5 class="text-muted mt-3">검색어를 입력하거나<br>약장을 선택해 주세요.</h5>
+            <h5 class="text-muted mt-3">검색어를 입력하거나<br>위치를 선택해 주세요.</h5>
         </div>
     {% else %}
-        <div class="mb-3 px-1">
-            <small class="text-muted">검색 결과: <strong>{{ medicines_list|length }}</strong>건</small>
-        </div>
+        <div class="mb-3 px-1"><small class="text-muted">결과: {{ medicines_list|length }}건</small></div>
         
         {% for m in medicines_list %}
             <div class="card medicine-card">
-                <div class="card-body py-3">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
                         <span class="badge badge-loc">{{ m.location.pos_number }}</span>
-                        <small class="text-muted">{{ m.code }}</small>
+                        <small class="text-muted">코드: {{ m.code }}</small>
                     </div>
-                    <h5 class="fw-bold mb-1" style="font-size: 1.1rem; color: #222;">{{ m.name }}</h5>
-                    <p class="mb-0 text-secondary" style="font-size: 0.85rem;">{{ m.specification }}</p>
+                    <h5 class="fw-bold mb-1">{{ m.name }}</h5>
+                    <p class="mb-0 text-secondary">규격: {{ m.specification }}</p>
                 </div>
             </div>
         {% empty %}
-            <div class="text-center py-5 text-muted">검색 결과가 없습니다.</div>
+            <div class="text-center py-5 text-muted">데이터가 없습니다.</div>
         {% endfor %}
     {% endif %}
 </div>

@@ -1,102 +1,85 @@
-import re
+import csv
+import io
 from django.shortcuts import render, redirect
-from django.db.models import Q
-from .models import MedicineLocation, MedicineMaster, MedicineStock
+from django.contrib import messages
+from .models import MedicineMaster, MedicineLocation, MedicineStock
 
 
 def inventory_list(request):
-    def natural_sort_key(s):
-        return [int(text) if text.isdigit() else text.lower() for text in re.split('([0-9]+)', str(s))]
-
-    # 1. POST 요청 처리 (약품 추가 및 수정)
-    if request.method == "POST":
-        medicine_id = request.POST.get('medicine_id')
-        medicine_name = request.POST.get('medicine_name')
-        pos_number = request.POST.get(
-            'pos_number', '').strip().replace(" ", "")
-        insurance_code = request.POST.get('insurance_code', '').strip()
-        quantity = request.POST.get('quantity') or 0
-
-        try:
-            location, _ = MedicineLocation.objects.get_or_create(
-                pos_number=pos_number)
-            if "(" in medicine_name:
-                name = medicine_name.split("(")[0].strip()
-                spec = medicine_name.split("(")[1].replace(")", "").strip()
-            else:
-                name = medicine_name.strip()
-                spec = "기본"
-
-            if medicine_id:
-                medicine = MedicineMaster.objects.get(id=medicine_id)
-                medicine.name, medicine.specification, medicine.location, medicine.code = name, spec, location, insurance_code
-                medicine.save()
-            else:
-                medicine, _ = MedicineMaster.objects.get_or_create(
-                    name=name, specification=spec, location=location, defaults={
-                        'code': insurance_code}
-                )
-            MedicineStock.objects.update_or_create(
-                medicine=medicine, defaults={'quantity': quantity})
-        except Exception:
-            pass
-        return redirect('inventory:inventory_list')
-
-    # 2. GET 요청 처리 (조회 및 필터)
     q = request.GET.get('q', '')
-    selected_cabinet = request.GET.get('cabinet', '')
-    code_filter = request.GET.get('code_filter', '')
-    show_all = request.GET.get('show_all', '')
+    cabinet = request.GET.get('cabinet', '')
+    show_all = request.GET.get('show_all', False)
 
-    # [핵심 수정] 검색/필터/전체보기가 없으면 빈 리스트로 시작 (로딩 속도 향상)
-    if not (q or selected_cabinet or code_filter or show_all):
-        medicines_list = []
-    else:
-        medicines_qs = MedicineMaster.objects.select_related('location').all()
-        if q:
-            medicines_qs = medicines_qs.filter(name__icontains=q)
-        if code_filter == 'yes':
-            medicines_qs = medicines_qs.exclude(
-                Q(code='') | Q(code='0') | Q(code__isnull=True))
-        elif code_filter == 'no':
-            medicines_qs = medicines_qs.filter(
-                Q(code='') | Q(code='0') | Q(code__isnull=True))
+    # 위치 정보와 함께 약품 목록 가져오기
+    medicines = MedicineMaster.objects.all().select_related('location')
 
-        if selected_cabinet:
-            if selected_cabinet == "미지정":
-                medicines_qs = [
-                    m for m in medicines_qs if "미지정" in m.location.pos_number]
-            else:
-                medicines_qs = [m for m in medicines_qs if m.location.pos_number.startswith(
-                    selected_cabinet + "-")]
+    if q:
+        # 약품명 또는 보험코드로 검색
+        medicines = medicines.filter(
+            name__icontains=q) | medicines.filter(code__icontains=q)
+    if cabinet:
+        # 선택한 약장 번호로 필터링
+        medicines = medicines.filter(location__pos_number=cabinet)
 
-        # 자연스러운 정렬 수행
-        medicines_list = sorted(
-            list(medicines_qs), key=lambda x: natural_sort_key(x.location.pos_number))
-
-    # 3. 약장 그룹화 로직 (사이드바/상단 버튼용)
-    all_locs = MedicineLocation.objects.all()
-    cabinet_nums = []
-    for l in all_locs:
-        if '-' in l.pos_number:
-            prefix = l.pos_number.split('-')[0]
-            if prefix.isdigit():
-                cabinet_nums.append(int(prefix))
-
-    cabinet_nums = sorted(list(set(cabinet_nums)))
-
-    cabinet_groups = {}
-    for n in cabinet_nums:
-        group_key = f"{(n-1)//10 * 10 + 1}~{(n-1)//10 * 10 + 10}번"
-        if group_key not in cabinet_groups:
-            cabinet_groups[group_key] = []
-        cabinet_groups[group_key].append(str(n))
+    # 화면 하단 약장 버튼용 목록
+    locations = MedicineLocation.objects.all().order_by('pos_number')
 
     return render(request, 'inventory/inventory_list.html', {
-        'medicines_list': medicines_list,
-        'cabinet_groups': cabinet_groups,
-        'selected_cabinet': selected_cabinet,
-        'code_filter': code_filter,
+        'medicines_list': medicines if q or cabinet or show_all else [],
         'q': q,
-        'is_search': bool(q or selected_cabinet or code_filter or show_all)
+        'selected_cabinet': cabinet,
+        'locations': locations,
+        'is_search': bool(q or cabinet or show_all)
     })
+
+
+def medicine_upload(request):
+    if request.method == "POST":
+        csv_file = request.FILES.get('file')
+
+        # CSV 파일 검증
+        if not csv_file or not csv_file.name.endswith('.csv'):
+            messages.error(
+                request, '엑셀에서 [CSV 쉼표로 분리] 형식으로 저장한 파일만 업로드 가능합니다.')
+            return redirect('inventory:medicine_upload')
+
+        try:
+            # 엑셀 저장 방식에 따른 인코딩 처리 (utf-8-sig는 엑셀 한글 깨짐 방지용)
+            data_set = csv_file.read().decode('utf-8-sig')
+            io_string = io.StringIO(data_set)
+            # 엑셀의 헤더명을 키로 사용 (의약품명, 규격, 보험코드, 위치)
+            reader = csv.DictReader(io_string)
+
+            count = 0
+            for row in reader:
+                name = row.get('의약품명', '').strip()
+                spec = row.get('규격', '').strip()
+                code = row.get('보험코드', '').strip()
+                loc_num = row.get('위치', '').strip()
+
+                if not name:
+                    continue  # 이름이 없으면 건너뜀
+
+                # 1. 약장 위치(MedicineLocation) 생성 또는 가져오기
+                location_obj, _ = MedicineLocation.objects.get_or_create(
+                    pos_number=loc_num
+                )
+
+                # 2. 약품 마스터(MedicineMaster) 저장 또는 업데이트
+                # 사용자가 정의한 unique_together (name, specification, location) 기준
+                MedicineMaster.objects.update_or_create(
+                    name=name,
+                    specification=spec,
+                    location=location_obj,
+                    defaults={'code': code}
+                )
+                count += 1
+
+            messages.success(request, f'성공: {count}건의 약품 데이터가 반영되었습니다.')
+            return redirect('inventory:inventory_list')
+
+        except Exception as e:
+            messages.error(request, f'파일 처리 중 오류가 발생했습니다: {str(e)}')
+            return redirect('inventory:medicine_upload')
+
+    return render(request, 'inventory/upload.html')

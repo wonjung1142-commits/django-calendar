@@ -1,98 +1,101 @@
-import requests
-from datetime import datetime, timedelta
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
-from .models import Employee, Event
+from django.views.decorators.clickjacking import xframe_options_exempt  # 팝업 차단 해제 도구
+from .models import Event, Employee
 from .forms import EventForm
-
-
-def get_korean_holidays(year):
-    service_key = "G+gFhAr3MY2lFgSZK2/mwrW1FEJjYNxmPfuMiWWt8sPpebwPmq47a/tUuo7Ccc0fqn+6TD8+gYb6oGWbvsLpnw=="
-    url = 'http://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo'
-    holidays = []
-    params = {'serviceKey': service_key, 'solYear': year,
-              'numOfRows': 100, '_type': 'json'}
-    try:
-        response = requests.get(url, params=params, timeout=5)
-        if response.status_code == 200:
-            res_data = response.json()
-            items = res_data.get('response', {}).get(
-                'body', {}).get('items', {}).get('item', [])
-            if isinstance(items, dict):
-                items = [items]
-            for item in items:
-                locdate = str(item['locdate'])
-                holidays.append({
-                    'title': item['dateName'],
-                    'start': f"{locdate[:4]}-{locdate[4:6]}-{locdate[6:8]}",
-                    'allDay': True,
-                    'display': 'background',
-                    'extendedProps': {'isHoliday': True}
-                })
-    except:
-        pass
-    return holidays
+from django.db.models import Count, Q
 
 
 def calendar_view(request):
+    """메인 캘린더 화면"""
     return render(request, 'calendarapp/calendar.html')
 
 
 def event_list(request):
-    events = Event.objects.all()
-    event_data = []
-    for e in events:
-        # 월차: 파랑, 반차: 주황, 휴가: 초록
-        color = '#1a73e8' if e.leave_type == '월차' else '#f9ab00' if e.leave_type == '반차' else '#34a853'
-        event_data.append({
-            'id': e.id,
-            'title': f"{e.employee.name}({e.leave_type})",
-            'start': e.start.isoformat(),
-            'end': (e.end + timedelta(days=1)).isoformat(),
-            'allDay': True,
-            'color': color
+    """캘린더에 뿌려줄 데이터 (JSON)"""
+    start = request.GET.get('start')
+    end = request.GET.get('end')
+
+    # 해당 기간의 데이터만 가져옴
+    events = Event.objects.filter(start__gte=start, start__lte=end)
+    data = []
+
+    for event in events:
+        color = '#3788d8'  # 기본 파란색 (연차 등)
+        if event.leave_type == '반차':
+            color = '#f0ad4e'  # 오렌지
+        elif event.leave_type == '월차':
+            color = '#5bc0de'  # 하늘색
+
+        data.append({
+            'id': event.id,
+            'title': f"{event.employee.name} ({event.leave_type})",
+            'start': event.start.strftime('%Y-%m-%d'),
+            'end': event.end.strftime('%Y-%m-%d') if event.end else event.start.strftime('%Y-%m-%d'),
+            'color': color,
+            # 휴가인 경우 캘린더 날짜 색을 바꾸기 위한 플래그
+            'extendedProps': {
+                'isHoliday': True if event.leave_type == '휴가' else False
+            }
         })
-    year = datetime.now().year
-    holidays = get_korean_holidays(year)
-    return JsonResponse(holidays + event_data, safe=False)
+    return JsonResponse(data, safe=False)
 
 
+@xframe_options_exempt  # [핵심] 이 줄이 있어야 팝업이 하얗게 안 나옵니다!
 def apply_view(request):
+    """팝업창 내용 (신청 폼)"""
+    event_id = request.GET.get('edit')
     date_str = request.GET.get('date')
-    edit_id = request.GET.get('edit')
-    event = get_object_or_404(Event, id=edit_id) if edit_id else None
+    instance = None
 
-    if request.method == "POST":
-        if event and "delete" in request.POST:
-            event.delete()
-            return render(request, "calendarapp/apply.html", {"is_success": True})
+    # 수정 모드일 때 기존 데이터 가져오기
+    if event_id:
+        instance = get_object_or_404(Event, id=event_id)
 
-        form = EventForm(
-            request.POST, instance=event) if event else EventForm(request.POST)
+    if request.method == 'POST':
+        # 삭제 버튼 눌렀을 때
+        if request.POST.get('delete') == '1' and instance:
+            instance.delete()
+            return render(request, 'calendarapp/apply.html', {'is_success': True})
+
+        # 저장 버튼 눌렀을 때
+        form = EventForm(request.POST, instance=instance)
         if form.is_valid():
-            saved_event = form.save(commit=False)
-            if saved_event.leave_type in ["월차", "반차"]:
-                saved_event.end = saved_event.start
-            saved_event.save()
-            return render(request, "calendarapp/apply.html", {"is_success": True})
+            form.save()
+            # 저장이 성공하면 팝업을 닫으라는 신호를 보냄
+            return render(request, 'calendarapp/apply.html', {'is_success': True})
     else:
-        initial = {"start": date_str, "end": date_str} if date_str else {}
-        form = EventForm(instance=event) if event else EventForm(
-            initial=initial)
+        # 처음 팝업 열 때 (날짜 클릭 시 해당 날짜 자동 입력)
+        initial_data = {}
+        if date_str:
+            initial_data = {'start': date_str, 'end': date_str}
 
-    return render(request, "calendarapp/apply.html", {"form": form, "is_edit": bool(event)})
+        form = EventForm(instance=instance, initial=initial_data)
 
-# [중요] 누락되었던 함수 추가
+    return render(request, 'calendarapp/apply.html', {
+        'form': form,
+        'is_edit': bool(instance)
+    })
 
 
 def employee_usage(request, employee_id):
+    """직원별 휴가 사용 내역 (어드민용)"""
     employee = get_object_or_404(Employee, id=employee_id)
-    annual_half = Event.objects.filter(employee=employee, leave_type__in=[
-                                       "월차", "반차"]).order_by('-start')
-    leave = Event.objects.filter(
-        employee=employee, leave_type="휴가").order_by('-start')
+
+    # 연차/반차/월차 내역
+    annual_half = Event.objects.filter(
+        employee=employee,
+        leave_type__in=['연차', '반차', '월차']
+    ).order_by('-start')
+
+    # 긴 휴가 내역
+    long_leaves = Event.objects.filter(
+        employee=employee,
+        leave_type='휴가'
+    ).order_by('-start')
+
     return render(request, 'calendarapp/employee_usage.html', {
         'employee': employee,
         'annual_half': annual_half,
-        'leave': leave
+        'leave': long_leaves
     })

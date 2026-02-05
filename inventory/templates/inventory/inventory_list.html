@@ -29,14 +29,8 @@
         font-weight: bold; 
         box-shadow: 0 4px 10px rgba(3, 207, 93, 0.3);
     }
-    .cabinet-btn:hover {
-        background-color: #f1f3f5;
-        color: #333;
-    }
-    .cabinet-btn.active:hover {
-        background-color: #02b350;
-        color: white;
-    }
+    .cabinet-btn:hover { background-color: #f1f3f5; color: #333; }
+    .cabinet-btn.active:hover { background-color: #02b350; color: white; }
 
     .medicine-card { border-radius: 18px; border: none; transition: 0.2s; cursor: pointer; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
     .medicine-card:hover { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(0,0,0,0.08); }
@@ -66,13 +60,11 @@
 
     <div class="card card-rounded p-3 mb-4">
         <h6 class="fw-bold mb-3 text-secondary" style="font-size: 0.85rem; letter-spacing: -0.5px;">📍 약장 선택</h6>
-        
         <div class="d-flex flex-nowrap overflow-auto pb-2" style="gap: 5px;">
             <a href="?q={{ q }}&code_filter={{ code_filter }}" 
                class="cabinet-btn {% if not selected_cabinet %}active{% endif %} text-decoration-none" style="min-width: 60px;">
                 전체
             </a>
-
             {% for rack in racks %}
             <a href="?cabinet={{ rack }}&q={{ q }}&code_filter={{ code_filter }}" 
                class="cabinet-btn {% if selected_cabinet == rack %}active{% endif %} text-decoration-none" style="min-width: 80px;">
@@ -122,4 +114,44 @@
             <form id="medForm">
                 {% csrf_token %}
                 <input type="hidden" name="med_id" id="form_id">
-                <div class="modal-body
+                <div class="modal-body p-4">
+                    <div class="mb-3"><label class="form-label small fw-bold text-secondary">약품명</label><input type="text" name="name" id="form_name" class="form-control rounded-3 border-light bg-light py-2" required></div>
+                    <div class="mb-3"><label class="form-label small fw-bold text-secondary">보험코드</label><input type="text" name="code" id="form_code" class="form-control rounded-3 border-light bg-light py-2"></div>
+                    <div class="row">
+                        <div class="col-6 mb-3"><label class="form-label small fw-bold text-secondary">규격</label><input type="text" name="spec" id="form_spec" class="form-control rounded-3 border-light bg-light py-2"></div>
+                        <div class="col-6 mb-3"><label class="form-label small fw-bold text-secondary">위치(약장)</label><input type="text" name="location" id="form_loc" class="form-control rounded-3 border-light bg-light py-2" placeholder="예: 1-1" required></div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-4 pt-0">
+                    <button type="button" class="nav-naver w-100 py-3 shadow-sm" onclick="saveData()">데이터 저장하기</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+let medModal;
+document.addEventListener('DOMContentLoaded', () => medModal = new bootstrap.Modal(document.getElementById('medModal')));
+function openModal(id='', name='', code='', spec='', loc='') {
+    document.getElementById('form_id').value = id;
+    document.getElementById('form_name').value = name;
+    document.getElementById('form_code').value = code;
+    document.getElementById('form_spec').value = spec;
+    document.getElementById('form_loc').value = loc;
+    document.getElementById('modalTitle').innerText = id ? "약품 정보 수정" : "새 약품 등록";
+    medModal.show();
+}
+function saveData() {
+    const fData = new FormData(document.getElementById('medForm'));
+    fetch("{% url 'inventory:medicine_save' %}", {
+        method: "POST",
+        body: fData,
+        headers: { "X-CSRFToken": "{{ csrf_token }}" }
+    }).then(r => r.json()).then(d => {
+        if(d.status === 'success') location.reload();
+        else alert("저장 중 오류가 발생했습니다.");
+    });
+}
+</script>
+{% endblock %}

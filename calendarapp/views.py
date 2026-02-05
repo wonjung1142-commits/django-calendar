@@ -11,12 +11,18 @@ def calendar_view(request):
 
 
 def event_list(request):
-    """캘린더 데이터 API (안전 모드 적용)"""
+    """캘린더 데이터 API (수정됨)"""
     start = request.GET.get('start')
     end = request.GET.get('end')
 
-    # 날짜 필터링
-    events = Event.objects.filter(start__gte=start, start__lte=end)
+    # [수정 포인트] start, end가 없으면 그냥 전체 데이터를 가져오도록 변경
+    if start and end:
+        events = Event.objects.filter(start__gte=start, start__lte=end)
+    else:
+        # 날짜 범위가 안 넘어오면 최근 1년치라도 가져오거나 전체를 가져옴
+        # (혹은 그냥 전체 다 가져오기: 데이터가 많지 않으므로 안전함)
+        events = Event.objects.all()
+
     data = []
 
     for event in events:
@@ -26,13 +32,13 @@ def event_list(request):
         elif event.leave_type == '월차':
             color = '#5bc0de'
 
-        # 직원 정보가 없는 경우(삭제됨)를 대비해 안전하게 처리
         emp_name = event.employee.name if event.employee else "알수없음"
 
         data.append({
             'id': event.id,
             'title': f"{emp_name} ({event.leave_type})",
             'start': event.start.strftime('%Y-%m-%d'),
+            # end 날짜가 없으면 start 날짜와 동일하게 설정 (FullCalendar 오류 방지)
             'end': event.end.strftime('%Y-%m-%d') if event.end else event.start.strftime('%Y-%m-%d'),
             'color': color,
             'extendedProps': {

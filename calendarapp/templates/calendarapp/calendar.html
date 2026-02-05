@@ -2,59 +2,18 @@
 
 {% block content %}
 <style>
-    /* 캘린더 컨테이너 스타일 */
+    /* 캘린더 디자인 */
     #calendar {
-        max-width: 100%;
-        margin: 0 auto;
-        background: white;
-        padding: 20px;
-        border-radius: 20px; /* 둥근 모서리 */
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05); /* 부드러운 그림자 */
+        max-width: 100%; margin: 0 auto; background: white; padding: 20px;
+        border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
     }
-    
-    /* 일정 막대 스타일 */
-    .fc-event {
-        cursor: pointer;
-        border: none;
-        border-radius: 4px;
-        padding: 2px 4px;
-        font-size: 0.9rem;
-        transition: transform 0.1s;
-    }
-    .fc-event:hover {
-        transform: scale(1.02); /* 마우스 올리면 살짝 커짐 */
-    }
-    .fc-day-grid-event .fc-content {
-        white-space: normal;
-        font-weight: 500;
-    }
-
-    /* 캘린더 상단 툴바 스타일 */
-    .fc-toolbar-title {
-        font-size: 1.5rem !important;
-        font-weight: 800;
-        color: #333;
-    }
-    .fc-button-primary {
-        background-color: #03cf5d !important; /* 네이버 그린 */
-        border-color: #03cf5d !important;
-        font-weight: bold;
-    }
-    .fc-button-primary:hover {
-        background-color: #02b350 !important;
-        border-color: #02b350 !important;
-    }
-
-    /* 모달(팝업) 스타일 */
-    .modal-content {
-        border-radius: 20px;
-        overflow: hidden;
-        border: none;
-    }
-    .modal-header {
-        background: #f8f9fa;
-        border-bottom: 1px solid #eee;
-    }
+    .fc-event { cursor: pointer; border: none; border-radius: 4px; padding: 2px 4px; font-size: 0.9rem; }
+    .fc-event:hover { transform: scale(1.02); }
+    .fc-toolbar-title { font-size: 1.5rem !important; font-weight: 800; color: #333; }
+    .fc-button-primary { background-color: #03cf5d !important; border-color: #03cf5d !important; font-weight: bold; }
+    /* 모달 스타일 */
+    .modal-content { border-radius: 20px; border: none; }
+    .modal-header { background: #f8f9fa; border-bottom: 1px solid #eee; }
 </style>
 
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
@@ -87,36 +46,29 @@
         var calendarEl = document.getElementById('calendar');
         var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
 
-        // 캘린더 설정 시작
         var calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth', // 월간 달력 기본
-            locale: 'ko', // 한국어 설정
-            headerToolbar: {
-                left: 'prev,next today',
-                center: 'title',
-                right: 'dayGridMonth,listMonth'
-            },
+            initialView: 'dayGridMonth',
+            locale: 'ko',
+            headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
             
-            // [핵심] 데이터 가져오기 및 날짜 보정 로직
+            // [여기가 핵심!] 서버는 그대로 두고, 받아온 데이터를 화면에서 고칩니다.
             events: function(info, successCallback, failureCallback) {
-                // start, end 파라미터를 명시적으로 붙여서 요청 (배달 사고 방지)
+                // 기존 views.py가 start, end 파라미터를 받으므로 그대로 맞춰서 요청합니다.
                 fetch("{% url 'calendarapp:event_list' %}?start=" + info.startStr + "&end=" + info.endStr)
                     .then(response => response.json())
                     .then(data => {
-                        // 가져온 데이터를 하나씩 검사해서 날짜를 고칩니다.
+                        // 가져온 데이터를 자바스크립트가 하나씩 수리합니다.
                         var fixedEvents = data.map(function(event) {
                             
-                            // 1. 시작일과 종료일이 같으면 (예: 반차, 1일 연차)
-                            // -> 종료일을 null로 만들어서 '하루 종일 일정'으로 인식시킴
+                            // 1. 시작일과 종료일이 같으면 (예: 반차) -> 종료일을 지워서 '하루 종일'로 만듦
                             if (event.start === event.end) {
                                 event.end = null; 
                             } 
-                            // 2. 시작일과 종료일이 다르면 (예: 휴가 12일~13일)
-                            // -> 종료일에 +1일을 더해줘야 달력에 마지막 날짜까지 꽉 채워져 보임
+                            // 2. 종료일이 있으면 (예: 휴가 12~13일) -> 달력은 종료일 00시까지만 보여주므로 +1일을 해서 꽉 채움
                             else if (event.end) {
                                 var endDate = new Date(event.end);
-                                endDate.setDate(endDate.getDate() + 1); // 하루 더하기
-                                event.end = endDate.toISOString().split('T')[0]; // YYYY-MM-DD 형식으로 변환
+                                endDate.setDate(endDate.getDate() + 1);
+                                event.end = endDate.toISOString().split('T')[0];
                             }
                             return event;
                         });
@@ -128,36 +80,32 @@
                     });
             },
 
-            // 날짜 클릭 시 (새 일정 신청)
-            dateClick: function(info) {
-                openModal(info.dateStr); // 클릭한 날짜를 넘겨줌
-            },
+            // 날짜 클릭 시 팝업
+            dateClick: function(info) { openModal(info.dateStr); },
 
-            // 일정 클릭 시 (수정/삭제)
+            // 일정 클릭 시 팝업
             eventClick: function(info) {
-                // iframe에 수정 페이지 띄우기 (edit 파라미터 전달)
                 var editUrl = "{% url 'calendarapp:apply' %}?edit=" + info.event.id;
                 document.getElementById('applyFrame').src = editUrl;
                 eventModal.show();
             }
         });
 
-        // 캘린더 화면에 그리기
         calendar.render();
 
-        // 팝업창 열기 함수 (전역 함수로 등록)
+        // 팝업 열기 기능
         window.openModal = function(dateStr) {
             var url = "{% url 'calendarapp:apply' %}";
-            if(dateStr) url += "?date=" + dateStr; // 날짜가 있으면 URL에 붙여서 전달
+            if(dateStr) url += "?date=" + dateStr;
             document.getElementById('applyFrame').src = url;
             eventModal.show();
         }
 
-        // 아이프레임(팝업)에서 "저장 완료" 신호를 받으면 실행되는 코드
+        // 팝업에서 저장하면 새로고침
         window.addEventListener('message', function(event) {
             if (event.data === 'submitted') {
-                eventModal.hide(); // 팝업 닫기
-                calendar.refetchEvents(); // 캘린더 데이터 새로고침 (깜빡임 없이 데이터만 갱신)
+                eventModal.hide();
+                calendar.refetchEvents();
             }
         });
     });

@@ -6,11 +6,13 @@
     #calendar {
         max-width: 100%; margin: 0 auto; background: white; padding: 20px;
         border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        height: 75vh; /* 높이 고정 */
     }
-    .fc-event { cursor: pointer; border: none; border-radius: 4px; padding: 2px 4px; font-size: 0.9rem; }
+    .fc-event { cursor: pointer; border: none; border-radius: 4px; padding: 2px 4px; font-size: 0.9rem; margin-bottom: 2px; }
     .fc-event:hover { transform: scale(1.02); }
     .fc-toolbar-title { font-size: 1.5rem !important; font-weight: 800; color: #333; }
     .fc-button-primary { background-color: #03cf5d !important; border-color: #03cf5d !important; font-weight: bold; }
+    
     /* 모달 스타일 */
     .modal-content { border-radius: 20px; border: none; }
     .modal-header { background: #f8f9fa; border-bottom: 1px solid #eee; }
@@ -51,20 +53,20 @@
             locale: 'ko',
             headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
             
-            // [여기가 핵심!] 서버는 그대로 두고, 받아온 데이터를 화면에서 고칩니다.
+            // [핵심 해결] 받아온 데이터를 화면에서 올바르게 고쳐서 보여줌
             events: function(info, successCallback, failureCallback) {
-                // 기존 views.py가 start, end 파라미터를 받으므로 그대로 맞춰서 요청합니다.
+                // views.py에 데이터 요청 (날짜 범위 포함)
                 fetch("{% url 'calendarapp:event_list' %}?start=" + info.startStr + "&end=" + info.endStr)
                     .then(response => response.json())
                     .then(data => {
-                        // 가져온 데이터를 자바스크립트가 하나씩 수리합니다.
+                        // 데이터를 하나씩 수리합니다.
                         var fixedEvents = data.map(function(event) {
                             
-                            // 1. 시작일과 종료일이 같으면 (예: 반차) -> 종료일을 지워서 '하루 종일'로 만듦
+                            // 1. 시작일과 종료일이 같으면 (예: 반차) -> 종료일을 지워서 '하루 종일'로 인식시킴
                             if (event.start === event.end) {
                                 event.end = null; 
                             } 
-                            // 2. 종료일이 있으면 (예: 휴가 12~13일) -> 달력은 종료일 00시까지만 보여주므로 +1일을 해서 꽉 채움
+                            // 2. 종료일이 있으면 (예: 휴가 12~13일) -> 달력은 00시 기준이라 하루가 잘림. +1일 해서 꽉 채움
                             else if (event.end) {
                                 var endDate = new Date(event.end);
                                 endDate.setDate(endDate.getDate() + 1);

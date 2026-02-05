@@ -2,37 +2,141 @@
 
 {% block content %}
 <style>
-    /* 캘린더 디자인 */
-    #calendar {
-        max-width: 100%; margin: 0 auto; background: white; padding: 20px;
-        border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        height: 75vh; /* 높이 고정 */
+    /* [모바일 UI 개선] 전체 컨테이너 여백 제거 및 꽉 찬 화면 */
+    body {
+        background-color: #ffffff;
     }
-    .fc-event { cursor: pointer; border: none; border-radius: 4px; padding: 2px 4px; font-size: 0.9rem; margin-bottom: 2px; }
-    .fc-event:hover { transform: scale(1.02); }
-    .fc-toolbar-title { font-size: 1.5rem !important; font-weight: 800; color: #333; }
-    .fc-button-primary { background-color: #03cf5d !important; border-color: #03cf5d !important; font-weight: bold; }
-    
-    /* 모달 스타일 */
-    .modal-content { border-radius: 20px; border: none; }
-    .modal-header { background: #f8f9fa; border-bottom: 1px solid #eee; }
+    .container {
+        padding: 0 !important;
+        max-width: 100% !important;
+    }
+
+    /* 캘린더 본체 스타일 */
+    #calendar {
+        max-width: 100%;
+        margin: 0 auto;
+        padding: 10px;
+        background: white;
+        /* 모바일에서 스크롤 없이 한눈에 들어오게 */
+        min-height: 85vh; 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    /* 툴바 (년/월 제목 + 버튼들) */
+    .fc-header-toolbar {
+        margin-bottom: 15px !important;
+        padding: 0 5px;
+    }
+    .fc-toolbar-title {
+        font-size: 1.25rem !important; /* 제목 크기 적당하게 */
+        font-weight: 800;
+        color: #111;
+    }
+    .fc-button {
+        border-radius: 12px !important; /* 버튼 둥글게 */
+        font-size: 0.85rem !important;
+        font-weight: 600;
+        padding: 6px 12px !important;
+        box-shadow: none !important;
+    }
+    /* 오늘 버튼, 화살표 버튼 스타일 */
+    .fc-prev-button, .fc-next-button {
+        background-color: transparent !important;
+        border: none !important;
+        color: #333 !important;
+    }
+    .fc-today-button {
+        background-color: #f1f3f5 !important;
+        border: none !important;
+        color: #333 !important;
+    }
+    .fc-today-button:disabled {
+        opacity: 0.5;
+    }
+
+    /* 요일 헤더 (일, 월, 화...) */
+    .fc-col-header-cell-cushion {
+        font-size: 0.85rem;
+        font-weight: normal;
+        color: #868e96;
+        padding-bottom: 10px !important;
+    }
+    .fc-day-sun .fc-col-header-cell-cushion { color: #e03131; } /* 일요일 빨강 */
+    .fc-day-sat .fc-col-header-cell-cushion { color: #1c7ed6; } /* 토요일 파랑 */
+
+    /* 날짜 숫자 */
+    .fc-daygrid-day-number {
+        font-size: 0.9rem;
+        color: #333;
+        padding: 4px 8px !important;
+    }
+    .fc-day-sun .fc-daygrid-day-number { color: #e03131; }
+    .fc-day-sat .fc-daygrid-day-number { color: #1c7ed6; }
+
+    /* 이벤트(일정) 막대 디자인 */
+    .fc-event {
+        border: none !important;
+        border-radius: 4px;
+        padding: 2px 3px;
+        margin-bottom: 2px;
+        font-size: 0.75rem; /* 글씨 작게해서 안 짤리게 */
+        font-weight: 500;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .fc-event-title {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* 오늘 날짜 배경 강조 */
+    .fc-day-today {
+        background-color: #f8f9fa !important;
+    }
+
+    /* 플로팅 버튼 (일정 추가) - 앱 스타일 */
+    .floating-btn {
+        position: fixed;
+        bottom: 30px;
+        right: 20px;
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background-color: #03cf5d;
+        color: white;
+        border: none;
+        box-shadow: 0 4px 12px rgba(3, 207, 93, 0.4);
+        font-size: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        transition: transform 0.2s;
+    }
+    .floating-btn:active {
+        transform: scale(0.95);
+    }
+
+    /* 모달 팝업 스타일 */
+    .modal-content {
+        border-radius: 20px;
+        border: none;
+    }
+    .modal-header {
+        border-bottom: 1px solid #f1f3f5;
+        padding: 15px 20px;
+    }
 </style>
 
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold m-0" style="color: #1e1e1e;">📅 스케줄러</h4>
-    <button class="btn btn-success rounded-pill px-4 fw-bold shadow-sm" style="background-color: #03cf5d; border: none;" onclick="openModal('')">
-        + 일정 신청
-    </button>
-</div>
-
 <div id='calendar'></div>
 
+<button class="floating-btn" onclick="openModal('')">+</button>
+
 <div class="modal fade" id="eventModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg">
-            <div class="modal-header px-4 pt-4 pb-2 border-0">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down"> <div class="modal-content shadow-lg">
+            <div class="modal-header">
                 <h5 class="modal-title fw-bold">일정 관리</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
@@ -51,23 +155,26 @@
         var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             locale: 'ko',
-            headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
+            height: 'auto', // 높이 자동 조절 (스크롤바 이중으로 생기는 것 방지)
+            contentHeight: 'auto',
+            dayMaxEvents: true, // 일정이 많으면 +2 more 처럼 표시 (칸이 너무 길어지는 것 방지)
             
-            // [핵심 해결] 받아온 데이터를 화면에서 올바르게 고쳐서 보여줌
+            // 모바일 최적화 툴바 설정
+            headerToolbar: {
+                left: 'prev,next',
+                center: 'title',
+                right: 'today' // 모바일에서는 월/주/일 보기 버튼 제거하여 심플하게
+            },
+            
+            // [데이터 로직 유지] 서버에서 데이터 가져오기 + 날짜 보정
             events: function(info, successCallback, failureCallback) {
-                // views.py에 데이터 요청 (날짜 범위 포함)
                 fetch("{% url 'calendarapp:event_list' %}?start=" + info.startStr + "&end=" + info.endStr)
                     .then(response => response.json())
                     .then(data => {
-                        // 데이터를 하나씩 수리합니다.
                         var fixedEvents = data.map(function(event) {
-                            
-                            // 1. 시작일과 종료일이 같으면 (예: 반차) -> 종료일을 지워서 '하루 종일'로 인식시킴
                             if (event.start === event.end) {
                                 event.end = null; 
-                            } 
-                            // 2. 종료일이 있으면 (예: 휴가 12~13일) -> 달력은 00시 기준이라 하루가 잘림. +1일 해서 꽉 채움
-                            else if (event.end) {
+                            } else if (event.end) {
                                 var endDate = new Date(event.end);
                                 endDate.setDate(endDate.getDate() + 1);
                                 event.end = endDate.toISOString().split('T')[0];
@@ -76,26 +183,26 @@
                         });
                         successCallback(fixedEvents);
                     })
-                    .catch(error => {
-                        console.error('데이터 로딩 실패:', error);
-                        failureCallback(error);
-                    });
+                    .catch(error => { console.error(error); failureCallback(error); });
             },
 
-            // 날짜 클릭 시 팝업
             dateClick: function(info) { openModal(info.dateStr); },
-
-            // 일정 클릭 시 팝업
             eventClick: function(info) {
                 var editUrl = "{% url 'calendarapp:apply' %}?edit=" + info.event.id;
                 document.getElementById('applyFrame').src = editUrl;
                 eventModal.show();
+            },
+            
+            // 창 크기 조절 시 캘린더 비율 자동 조정
+            windowResize: function(view) {
+                if (window.innerWidth < 768) {
+                    calendar.changeView('dayGridMonth');
+                }
             }
         });
 
         calendar.render();
 
-        // 팝업 열기 기능
         window.openModal = function(dateStr) {
             var url = "{% url 'calendarapp:apply' %}";
             if(dateStr) url += "?date=" + dateStr;
@@ -103,7 +210,6 @@
             eventModal.show();
         }
 
-        // 팝업에서 저장하면 새로고침
         window.addEventListener('message', function(event) {
             if (event.data === 'submitted') {
                 eventModal.hide();

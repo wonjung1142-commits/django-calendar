@@ -1,85 +1,42 @@
-from django.shortcuts import render, get_object_or_404
-from django.db.models import Q
-from django.http import JsonResponse
-# [중요] 여기는 inventory 앱이므로 MedicineMaster, MedicineLocation을 가져와야 합니다.
-from .models import MedicineMaster, MedicineLocation
+from django.http import HttpResponse
 
 
 def inventory_list(request):
-    """약품 목록 조회 (약장 그룹핑 기능 적용)"""
-    q = request.GET.get('q', '')
-    cabinet = request.GET.get('cabinet', '')  # 예: '1' (1번 약장 클릭 시)
-    code_filter = request.GET.get('code_filter', 'all')
+    """500 에러 원인 추적용 긴급 진단 뷰"""
+    try:
+        # 1. models.py 파일 자체를 불러와 봅니다.
+        from . import models
 
-    is_search = bool(q or cabinet)
-    medicines = MedicineMaster.objects.all().select_related('location')
+        # 2. 모델 파일 안에 'MedicineMaster'(약품) 클래스가 있는지 확인합니다.
+        if not hasattr(models, 'MedicineMaster'):
+            return HttpResponse("""
+                <h1 style='color:red;'>🚨 [비상] models.py 파일 오류!</h1>
+                <h3>inventory/models.py 파일에 'MedicineMaster'가 없습니다.</h3>
+                <p>혹시 캘린더용 models.py(Event, Employee)가 여기에 덮어씌워졌나요?</p>
+                <p>-> <b>inventory/models.py</b>를 약품용 코드로 다시 복구해야 합니다.</p>
+            """)
 
-    # 1. 검색어 필터
-    if q:
-        medicines = medicines.filter(
-            Q(name__icontains=q) | Q(code__icontains=q))
+        # 3. 모델이 있다면, 실제 DB 연결을 시도해봅니다.
+        from .models import MedicineMaster, MedicineLocation
+        med_count = MedicineMaster.objects.count()
+        loc_count = MedicineLocation.objects.count()
 
-    # 2. 약장 그룹 필터 (핵심!)
-    if cabinet:
-        # '1'번 약장을 선택하면 '1-1', '1-2', '1-3' 등 '1-'로 시작하는 모든 약을 찾음
-        medicines = medicines.filter(
-            location__pos_number__startswith=f"{cabinet}-")
+        return HttpResponse(f"""
+            <h1 style='color:green;'>✅ 모델과 DB는 정상입니다!</h1>
+            <h3>현재 데이터: 약품 {med_count}개, 위치 {loc_count}개</h3>
+            <p>이 화면이 보인다면, models.py는 안전합니다.</p>
+            <p>이제 <b>views.py의 로직(오타나 들여쓰기)</b>만 다시 점검하면 됩니다.</p>
+        """)
 
-    # 3. 보험코드 필터
-    if code_filter == 'yes':
-        medicines = medicines.exclude(
-            Q(code='') | Q(code='0') | Q(code__isnull=True))
-    elif code_filter == 'no':
-        medicines = medicines.filter(
-            Q(code='') | Q(code='0') | Q(code__isnull=True))
-
-    # [핵심 로직] DB에 있는 위치(1-1, 1-2...)에서 앞번호(1)만 추출해서 목록 만들기
-    all_locations = MedicineLocation.objects.values_list(
-        'pos_number', flat=True)
-    racks = set()
-    for loc in all_locations:
-        if loc and '-' in loc:
-            # 하이픈(-) 앞의 숫자만 가져옴 (예: "1-1" -> "1")
-            racks.add(loc.split('-')[0])
-
-    # 숫자 순서대로 정렬 (1, 2, 3...)
-    sorted_racks = sorted(
-        list(racks), key=lambda x: int(x) if x.isdigit() else x)
-
-    return render(request, 'inventory/inventory_list.html', {
-        'medicines_list': medicines if is_search else [],
-        'q': q,
-        'selected_cabinet': cabinet,
-        'racks': sorted_racks,  # 화면에 '1번 약장', '2번 약장' 버튼을 만들기 위해 보냄
-        'code_filter': code_filter,
-        'is_search': is_search
-    })
+    except Exception as e:
+        # 그 외의 에러가 나면 상세 내용을 화면에 뿌립니다.
+        import traceback
+        error_msg = traceback.format_exc()
+        return HttpResponse(f"""
+            <h1 style='color:red;'>🔥 에러 발생 (이 내용을 보여주세요)</h1>
+            <pre style='background:#f4f4f4; padding:15px; border:1px solid #ccc;'>{error_msg}</pre>
+        """)
 
 
 def medicine_save(request):
-    """약품 추가 및 수정"""
-    if request.method == "POST":
-        med_id = request.POST.get('med_id')
-        name = request.POST.get('name')
-        code = request.POST.get('code', '')
-        spec = request.POST.get('spec', '')
-        loc_num = request.POST.get('location', '미지정')
-
-        # 위치 정보 저장 (없으면 생성)
-        location_obj, _ = MedicineLocation.objects.get_or_create(
-            pos_number=loc_num)
-
-        if med_id:
-            medicine = get_object_or_404(MedicineMaster, id=med_id)
-            medicine.name = name
-            medicine.code = code
-            medicine.specification = spec
-            medicine.location = location_obj
-            medicine.save()
-        else:
-            MedicineMaster.objects.create(
-                name=name, code=code, specification=spec, location=location_obj
-            )
-
-        return JsonResponse({'status': 'success'})
-    return JsonResponse({'status': 'error'}, status=400)
+    return HttpResponse("진단 모드입니다.")

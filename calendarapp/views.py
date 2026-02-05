@@ -16,11 +16,11 @@ def event_list(request):
 
     data = []
     for event in events:
-        color = '#3788d8'
+        color = "#57bc43"
         if event.leave_type == '반차':
-            color = '#f0ad4e'
+            color = "#ed900f"
         elif event.leave_type == '월차':
-            color = '#5bc0de'
+            color = "#0088ff"
 
         emp_name = event.employee.name if event.employee else "알수없음"
 

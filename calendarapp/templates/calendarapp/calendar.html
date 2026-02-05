@@ -1,97 +1,139 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>제일약국 캘린더</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css" rel="stylesheet">
-  <style>
-    body { background-color: #ffffff; font-family: 'Pretendard', -apple-system, sans-serif; overflow: hidden; touch-action: none; }
-    .header-bar { background: white; border-bottom: 1px solid #f1f3f4; display: flex; align-items: center; padding: 10px 15px; height: 60px; }
-    .btn-home { background-color: #f1f3f4; color: #3c4043; border: none; border-radius: 30px; padding: 6px 14px; font-weight: 700; font-size: 0.9rem; text-decoration: none; display: flex; align-items: center; }
-    .btn-home span { margin-left: 5px; }
-    #calendar-container { padding: 5px; }
-    #calendar { height: calc(100vh - 70px); }
-    a { text-decoration: none !important; color: #202124 !important; }
-    .fc-col-header-cell.fc-day-sun a, .fc-daygrid-day.fc-day-sun .fc-daygrid-day-number, .holiday-red .fc-daygrid-day-number { color: #d93025 !important; }
-    .fc-col-header-cell.fc-day-sat a, .fc-daygrid-day.fc-day-sat .fc-daygrid-day-number { color: #1a73e8 !important; }
-    .fc-event { border: none !important; padding: 2px 4px; border-radius: 4px; font-size: 0.85em; font-weight: 500; }
-  </style>
-</head>
-<body>
+{% extends 'base.html' %}
 
-<div class="header-bar">
-    <a href="{% url 'home' %}" class="btn-home">🏠 <span>HOME</span></a>
-    <h5 class="fw-bold m-0 ms-3">제일약국 캘린더</h5>
+{% block content %}
+<style>
+    /* 캘린더 스타일 커스텀 */
+    #calendar {
+        max-width: 100%;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        border-radius: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    }
+    .fc-event {
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        padding: 2px 4px;
+        font-size: 0.9em;
+    }
+    .fc-day-grid-event .fc-content {
+        white-space: normal;
+    }
+    .fc-toolbar-title {
+        font-size: 1.5em !important;
+        font-weight: bold;
+        color: #333;
+    }
+    .fc-button-primary {
+        background-color: #03cf5d !important;
+        border-color: #03cf5d !important;
+        font-weight: bold;
+    }
+    /* 모달 스타일 */
+    .modal-content {
+        border-radius: 20px;
+        overflow: hidden;
+        border: none;
+    }
+    .modal-header {
+        background: #f8f9fa;
+        border-bottom: 1px solid #eee;
+    }
+</style>
+
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold m-0">📅 스케줄러</h4>
+    <button class="btn btn-success rounded-pill px-4 fw-bold" onclick="openModal('')">
+        + 일정 신청
+    </button>
 </div>
 
-<div id="calendar-container">
-  <div id="calendar"></div>
-</div>
+<div id='calendar'></div>
 
-<div class="modal fade" id="applyModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="border-radius: 20px; border: none;">
-      <div class="modal-body p-0">
-        <iframe id="applyFrame" src="" style="width:100%; height:450px; border:none; border-radius: 20px;"></iframe>
-      </div>
+<div class="modal fade" id="eventModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold">일정 관리</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="applyFrame" src="" width="100%" height="450px" style="border:none;"></iframe>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/hammer.js/2.0.8/hammer.min.js"></script>
 
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const calendarEl = document.getElementById('calendar');
-    const applyModal = new bootstrap.Modal(document.getElementById('applyModal'));
-    const applyFrame = document.getElementById('applyFrame');
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
 
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: 'dayGridMonth',
-      locale: 'ko',
-      headerToolbar: { left: 'today prev,next', center: 'title', right: '' },
-      events: "{% url 'calendarapp:event_list' %}",
-      eventDidMount: function(info) {
-        if (info.event.extendedProps.isHoliday) {
-            const dateStr = info.event.startStr;
-            const dayEl = document.querySelector(`.fc-daygrid-day[data-date="${dateStr}"]`);
-            if (dayEl) { dayEl.classList.add('holiday-red'); }
-            info.el.style.display = 'none';
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            locale: 'ko', // 한국어 설정
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,listMonth'
+            },
+            
+            // [핵심 1] 데이터 가져오기 및 날짜 버그 수정
+            events: function(info, successCallback, failureCallback) {
+                fetch("{% url 'calendarapp:event_list' %}")
+                    .then(response => response.json())
+                    .then(data => {
+                        // 데이터를 하나씩 꺼내서 고칩니다.
+                        var fixedEvents = data.map(function(event) {
+                            // 시작일과 종료일이 같으면 종료일을 없애버림 (그러면 하루 종일로 인식됨)
+                            if (event.start === event.end) {
+                                event.end = null; 
+                            }
+                            return event;
+                        });
+                        successCallback(fixedEvents);
+                    })
+                    .catch(error => {
+                        console.error('에러 발생:', error);
+                        failureCallback(error);
+                    });
+            },
+
+            // 날짜 클릭 시 (새 일정 신청)
+            dateClick: function(info) {
+                openModal(info.dateStr);
+            },
+
+            // 일정 클릭 시 (수정/삭제)
+            eventClick: function(info) {
+                // iframe에 수정 페이지 띄우기 (edit 파라미터 전달)
+                var editUrl = "{% url 'calendarapp:apply' %}?edit=" + info.event.id;
+                document.getElementById('applyFrame').src = editUrl;
+                eventModal.show();
+            }
+        });
+
+        calendar.render();
+
+        // [핵심 2] 팝업창 열기 함수
+        window.openModal = function(dateStr) {
+            var url = "{% url 'calendarapp:apply' %}";
+            if(dateStr) url += "?date=" + dateStr;
+            document.getElementById('applyFrame').src = url;
+            eventModal.show();
         }
-      },
-      dateClick: function (info) {
-        applyFrame.src = "{% url 'calendarapp:apply' %}?date=" + info.dateStr;
-        applyModal.show();
-      },
-      eventClick: function (info) {
-        applyFrame.src = "{% url 'calendarapp:apply' %}?edit=" + info.event.id;
-        applyModal.show();
-      }
+
+        // [핵심 3] 아이프레임(팝업)에서 "저장 완료" 신호를 보내면 닫고 새로고침
+        window.addEventListener('message', function(event) {
+            if (event.data === 'submitted') {
+                eventModal.hide();
+                calendar.refetchEvents(); // 캘린더 데이터만 새로고침 (깜빡임 없음)
+            }
+        });
     });
-
-    calendar.render();
-
-    // 핵심: 메시지 수신 시 캘린더를 즉시 리프레시함
-    window.addEventListener("message", function(event) {
-        if (event.data === "submitted") {
-            applyModal.hide(); 
-            // 캘린더 데이터를 다시 가져오고 화면을 갱신
-            calendar.refetchEvents();
-        }
-    });
-
-    const harness = document.querySelector('.fc-view-harness');
-    if (harness) {
-        const mc = new Hammer(harness);
-        mc.get('swipe').set({ direction: Hammer.DIRECTION_HORIZONTAL });
-        mc.on("swiperight", () => calendar.prev());
-        mc.on("swipeleft", () => calendar.next());
-    }
-  });
 </script>
-</body>
-</html>
+{% endblock %}
